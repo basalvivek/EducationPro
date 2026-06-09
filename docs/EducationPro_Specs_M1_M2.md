@@ -1,6 +1,6 @@
 # EducationPro — Developer-Ready Specification
-### Modules 1 & 2 | Spring Boot + PostgreSQL + Bootstrap 5
-**Version:** 1.1 | **Status:** Draft | **Audience:** Senior Developers & Architects
+### Modules 1, 2 & 3 | Spring Boot + PostgreSQL + Bootstrap 5
+**Version:** 1.2 | **Status:** Draft | **Audience:** Senior Developers & Architects
 
 ---
 
@@ -27,8 +27,15 @@
    - 5.7 API Contracts
    - 5.8 Database Schema
    - 5.9 Backend Service Layer
-6. [Error Handling Standards](#6-error-handling-standards)
-7. [Non-Functional Requirements](#7-non-functional-requirements)
+6. [Module 3 — Assessment Designer](#6-module-3--assessment-designer)
+   - 6.1 Layout
+   - 6.2 Question Picker & Cascade Filters
+   - 6.3 Exam Paper Builder
+   - 6.4 API Contracts
+   - 6.5 Database Schema
+   - 6.6 Key Implementation Notes
+7. [Error Handling Standards](#7-error-handling-standards)
+8. [Non-Functional Requirements](#8-non-functional-requirements)
 
 ---
 
@@ -2168,7 +2175,369 @@ public class CourseNodeService {
 
 ---
 
-## 6. Error Handling Standards
+## 6. Module 3 — Assessment Designer
+
+Admin-only feature at `/admin/exams/builder`. Lets an admin compose exam papers from existing Question nodes and manage their lifecycle (DRAFT → APPROVED).
+
+### 6.1 Layout
+
+Three-column workspace (full-viewport height, no scroll):
+
+```
+┌──────────────┬───────────────────────────┬──────────────────────────────┐
+│   SIDEBAR    │   QUESTION PICKER (360px) │   EXAM PAPER BUILDER (flex)  │
+│              │                           │                              │
+│  Dashboard   │  ┌─ Cascade Filters ────┐ │  [Select exam ▾] [+ New]    │
+│  Design      │  │ Class      ▾          │ │  [🗑 Delete]                 │
+│  Courses     │  │ Subject    ▾ (locked) │ │                              │
+│  Assessment  │  │ Exam Board ▾ (locked) │ │  Exam Name *                 │
+│  Designer ←  │  │ Topic      ▾ (locked) │ │  Description                 │
+│  Users       │  │ Sub Topic  ▾ (locked) │ │  Time Limit  Total Marks     │
+│  Approvals   │  │ Complexity ▾          │ │  Pass Mark                   │
+│  Analytics   │  │ [Apply Filter]        │ │  ☐ Shuffle Questions         │
+│              │  └───────────────────────┘ │  ☐ Shuffle Options           │
+│              │                           │                              │
+│              │  ┌─ Results ─────────────┐ │  Questions in this exam [3]  │
+│              │  │ [Q title] [+]         │ │  ↑↓ Q1  Solve x+2=5  1mk [✕]│
+│              │  │ [Q title] [✓] disabled│ │  ↑↓ Q2  …            2mk [✕]│
+│              │  │ …                     │ │                              │
+│              │  └───────────────────────┘ │  [Save Draft] [Submit/Approve]│
+└──────────────┴───────────────────────────┴──────────────────────────────┘
+```
+
+Route: `GET /admin/exams/builder` → Thymeleaf template `admin/exam-builder.html`.
+
+---
+
+### 6.2 Question Picker & Cascade Filters
+
+#### Cascade Dropdown Behaviour
+
+Five dependent dropdowns map directly onto the Course Designer tree hierarchy:
+
+| Dropdown | Level | Loads |
+|---|---|---|
+| Class | 0 (root) | `GET /api/admin/question-search/tree-nodes` (no parentId) |
+| Subject | 1 | `GET /api/admin/question-search/tree-nodes?parentId=<classId>` |
+| Exam Board | 2 | `…?parentId=<subjectId>` |
+| Topic | 3 | `…?parentId=<examBoardId>` |
+| Sub Topic | 4 | `…?parentId=<topicId>` |
+
+Rules:
+- Only `NODE`-type nodes appear in dropdowns (not QUESTIONs).
+- Each level is disabled until its parent is selected.
+- Selecting a higher level resets and disables all levels below it.
+- Changing any dropdown auto-triggers a question search.
+- **Complexity** dropdown is independent (Foundation / Intermediate / Higher / All).
+- **Apply Filter** button re-runs the search with current selections.
+- **Refresh** button (↺) reloads the Class list and resets all cascade state.
+
+#### Question Search — BFS Logic
+
+The `/api/admin/question-search` endpoint does **not** rely on metadata columns. Instead:
+
+1. Load all `course_nodes` flat from DB.
+2. Build an in-memory `parentId → [childIds]` map.
+3. BFS from the selected `nodeId` to collect all descendant node IDs (including the selected node itself).
+4. Return all `QUESTION`-type nodes whose `parentId` is in that descendant set.
+5. If no `nodeId` → return all questions.
+6. Apply optional `complexity` filter on top.
+
+This means questions surface at any depth below the selected tree node, regardless of how many levels deep they sit.
+
+#### Picker Item Display
+
+Each result shows: title (truncated), first 70 chars of questionText, type badge, complexity badge, marks badge, and a `[+]` add button. Already-added questions show a disabled `[✓]` button.
+
+---
+
+### 6.3 Exam Paper Builder
+
+#### Exam Lifecycle
+
+```
+New form (unsaved) → [Save Draft] → DRAFT → [Submit/Approve] → APPROVED
+```
+
+- APPROVED exams: Submit button disabled, shows "Approved" label.
+- Delete available at any status.
+- Auto-save: if user clicks `[+]` on a question while no exam is selected and the Name field is filled, the exam is auto-saved as DRAFT first, then the question is added.
+
+#### Exam Form Fields
+
+| Field | Constraint |
+|---|---|
+| Name | Required, max 200 chars |
+| Description | Optional, textarea |
+| Time Limit (min) | Required, default 60, min 1 |
+| Total Marks | Auto-calculated (sum of per-question marks); admin may override |
+| Pass Mark | Optional integer |
+| Shuffle Questions | Boolean toggle |
+| Shuffle Options | Boolean toggle |
+
+#### Question List Controls
+
+- `↑` / `↓` buttons reorder questions (calls `PUT /api/admin/exams/{id}/questions/reorder` with full ordered list of question IDs).
+- `✕` removes a question from the exam.
+- Question count badge and total marks display update after every add/remove/reorder.
+
+---
+
+### 6.4 API Contracts
+
+All endpoints under `/api/admin/exams` require `ADMIN` role.
+
+#### Exam CRUD
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/admin/exams` | List all exams (`ExamSummaryDto[]`) |
+| `GET` | `/api/admin/exams/{id}` | Get exam with full question list (`ExamDto`) |
+| `POST` | `/api/admin/exams` | Create exam (DRAFT) |
+| `PUT` | `/api/admin/exams/{id}` | Update exam metadata |
+| `DELETE` | `/api/admin/exams/{id}` | Delete exam and all exam_questions |
+| `POST` | `/api/admin/exams/{id}/submit` | Promote status to APPROVED |
+
+**`POST /api/admin/exams` Request:**
+```json
+{
+  "name": "Year 10 Mock Paper 1",
+  "description": "End of term mock",
+  "timeLimitMinutes": 90,
+  "passMark": 50,
+  "shuffleQuestions": true,
+  "shuffleOptions": false
+}
+```
+
+**`ExamDto` Response:**
+```json
+{
+  "id": 1,
+  "name": "Year 10 Mock Paper 1",
+  "description": "End of term mock",
+  "timeLimitMinutes": 90,
+  "totalMarks": 15,
+  "passMark": 50,
+  "shuffleQuestions": true,
+  "shuffleOptions": false,
+  "status": "DRAFT",
+  "questions": [
+    {
+      "examQuestionId": 3,
+      "questionId": 15,
+      "title": "Solve x + 2 = 5",
+      "questionText": "What is the value of x?",
+      "questionType": "MCQ_SINGLE",
+      "complexity": "FOUNDATION",
+      "marks": 1,
+      "position": 0
+    }
+  ]
+}
+```
+
+**`ExamSummaryDto` (list response):**
+```json
+{
+  "id": 1,
+  "name": "Year 10 Mock Paper 1",
+  "status": "DRAFT",
+  "timeLimitMinutes": 90,
+  "totalMarks": 15,
+  "questionCount": 5
+}
+```
+
+#### Question Management
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/admin/exams/{id}/questions` | Add question to exam |
+| `DELETE` | `/api/admin/exams/{id}/questions/{questionId}` | Remove question |
+| `PUT` | `/api/admin/exams/{id}/questions/reorder` | Reorder (full ordered list) |
+
+**`POST /api/admin/exams/{id}/questions` Request:**
+```json
+{ "questionId": 15, "marksOverride": null }
+```
+`marksOverride` — if set, overrides the question's default marks for this exam only. If null, uses `course_nodes.marks` (default 1).
+
+**`PUT /api/admin/exams/{id}/questions/reorder` Request:**
+```json
+[15, 18, 22, 16, 17]
+```
+Array of **questionIds** in desired order. Must contain exactly the same IDs currently in the exam — any mismatch returns 400.
+
+#### Question Search
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/admin/question-search/tree-nodes` | NODE children for cascade dropdown |
+| `GET` | `/api/admin/question-search` | Search questions by subtree + complexity |
+
+**`GET /api/admin/question-search/tree-nodes?parentId=10`**
+```json
+[
+  { "id": 11, "title": "Subject - Maths" },
+  { "id": 12, "title": "Subject - Science" }
+]
+```
+Omit `parentId` → returns root-level nodes (Class level).
+
+**`GET /api/admin/question-search?nodeId=10&complexity=INTERMEDIATE`**
+```json
+[
+  {
+    "id": 16,
+    "title": "True & False Question",
+    "questionText": "The earth is flat.",
+    "questionType": "TRUE_FALSE",
+    "complexity": "INTERMEDIATE",
+    "marks": 1,
+    "className": null,
+    "subject": null,
+    "examBoard": null,
+    "topic": null,
+    "subTopic": null
+  }
+]
+```
+
+---
+
+### 6.5 Database Schema
+
+```sql
+-- V6__assessment_designer.sql
+
+CREATE TABLE exams (
+  id                BIGSERIAL     PRIMARY KEY,
+  name              VARCHAR(200)  NOT NULL,
+  description       TEXT,
+  time_limit_minutes INT          NOT NULL DEFAULT 60,
+  total_marks       INT           NOT NULL DEFAULT 0,
+  pass_mark         INT,
+  shuffle_questions  BOOLEAN      NOT NULL DEFAULT FALSE,
+  shuffle_options    BOOLEAN      NOT NULL DEFAULT FALSE,
+  status            VARCHAR(20)   NOT NULL DEFAULT 'DRAFT'
+                    CHECK (status IN ('DRAFT','APPROVED')),
+  created_by        BIGINT        NOT NULL REFERENCES users(id),
+  created_at        TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+  updated_at        TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE exam_questions (
+  id              BIGSERIAL   PRIMARY KEY,
+  exam_id         BIGINT      NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
+  question_id     BIGINT      NOT NULL REFERENCES course_nodes(id) ON DELETE CASCADE,
+  position        INT         NOT NULL DEFAULT 0,
+  marks_override  INT,
+  CONSTRAINT uq_exam_question UNIQUE (exam_id, question_id)
+);
+
+CREATE INDEX idx_eq_exam     ON exam_questions(exam_id);
+CREATE INDEX idx_eq_question ON exam_questions(question_id);
+
+CREATE TRIGGER trg_exams_updated_at
+  BEFORE UPDATE ON exams
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+```
+
+Full migration order:
+```
+V1__init_users.sql
+V2__password_reset_tokens.sql
+V3__course_nodes.sql
+V4__course_nodes_expand.sql
+V5__reset_admin_password.sql
+V6__assessment_designer.sql
+```
+
+---
+
+### 6.6 Key Implementation Notes
+
+#### BFS in `QuestionSearchController`
+
+```java
+private Set<Long> collectSubtreeIds(List<CourseNode> allNodes, Long rootId) {
+    Map<Long, List<Long>> childrenMap = new HashMap<>();
+    for (CourseNode n : allNodes) {
+        if (n.getParentId() != null)
+            childrenMap.computeIfAbsent(n.getParentId(), k -> new ArrayList<>()).add(n.getId());
+    }
+    Set<Long> result = new HashSet<>();
+    Deque<Long> queue = new ArrayDeque<>();
+    queue.add(rootId);
+    while (!queue.isEmpty()) {
+        Long curr = queue.poll();
+        result.add(curr);
+        queue.addAll(childrenMap.getOrDefault(curr, Collections.emptyList()));
+    }
+    return result;
+}
+```
+
+All nodes are loaded once (`findAllByOrderBySortOrderAsc`); BFS runs in memory. Performs within target <300ms for up to 500 nodes.
+
+#### Total Marks Auto-Calc (`ExamService`)
+
+```java
+private void recalcTotalMarks(Exam exam, Long examId) {
+    int total = examQRepo.findByExamIdOrderByPositionAsc(examId).stream()
+        .mapToInt(eq -> {
+            if (eq.getQuestion() == null) return 0;
+            return eq.getMarksOverride() != null
+                ? eq.getMarksOverride()
+                : (eq.getQuestion().getMarks() != null ? eq.getQuestion().getMarks() : 1);
+        }).sum();
+    exam.setTotalMarks(total);
+    examRepo.save(exam);
+}
+```
+
+#### Auto-Save on First Question Add (`exam.js`)
+
+```javascript
+if (!currentExam) {
+  var name = (document.getElementById('examName').value || '').trim();
+  if (!name) {
+    showToast('Enter an exam name first, then add questions.', 'warning');
+    document.getElementById('examName').focus();
+    return;
+  }
+  await saveExam();          // POSTs to /api/admin/exams, sets currentExam
+  if (!currentExam) return;  // saveExam failed (server error already toasted)
+}
+```
+
+#### Cascade Dropdown State Reset
+
+When a higher-level dropdown changes, `loadTreeNodes(parentId, level)` must reset `selectedLevelId[level] = null` before repopulating to avoid stale node IDs in the search query:
+
+```javascript
+async function loadTreeNodes(parentNodeId, level) {
+  // ...fetch nodes...
+  selectedLevelId[level] = null;   // critical: clear before repopulating
+  el.innerHTML = '<option value="">' + cfg.label + '</option>';
+  nodes.forEach(n => el.add(new Option(n.title, n.id)));
+  el.disabled = false;
+  clearLevelsBelow(level);
+}
+```
+
+#### Reorder Validation
+
+`PUT /api/admin/exams/{id}/questions/reorder` validates:
+1. Submitted list length equals current question count.
+2. Every ID in the list is an existing `questionId` for this exam.
+
+Returns `400 BusinessException` on any mismatch.
+
+---
+
+## 7. Error Handling Standards
 
 ### Global Exception Handler
 ```java
@@ -2228,7 +2597,7 @@ function showToast(message, type = 'danger') {
 
 ---
 
-## 7. Non-Functional Requirements
+## 8. Non-Functional Requirements
 
 | Category | Requirement |
 |---|---|
@@ -2252,5 +2621,5 @@ db/migration/
 
 ---
 
-*End of Specification — EducationPro Modules 1 & 2*
-*Next modules: Module 3 (Teacher Submission Workflow), Module 4 (Student Course View)*
+*End of Specification — EducationPro Modules 1, 2 & 3*
+*Next modules: Module 4 (Student Course View)*

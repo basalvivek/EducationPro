@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-Web application, currently hosted on `localhost`. No code exists yet. `docs/EducationPro_Specs_M1_M2.md` is the authoritative spec. All implementation decisions must align with it.
+Web application running on `localhost:9090` (dev profile). Modules 1, 2, and 3 are implemented. `docs/EducationPro_Specs_M1_M2.md` is the authoritative spec (covers M1–M3). All implementation decisions must align with it.
+
+Default admin credentials: `admin@educationpro.com` / `Admin@123`
 
 ## Tech Stack
 
@@ -58,6 +60,18 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 - `QUESTION` nodes have extra fields: `questionText`, `questionType` (MCQ/TRUE_FALSE/SHORT/ESSAY), `marks`
 - Tree UI is custom Vanilla JS (no jsTree dependency required)
 
+### Module 3 — Assessment Designer (`/admin/exams/builder`)
+
+- Three-column layout: sidebar | Question Picker (360px, fixed) | Exam Paper Builder (flex-grow)
+- Cascade dropdowns (Class → Subject → Exam Board → Topic → Sub Topic) mirror the Course Designer tree; each level fetches direct `NODE` children via `GET /api/admin/question-search/tree-nodes?parentId=X`
+- Question search uses BFS from selected node → collects all descendant IDs in memory → returns `QUESTION` nodes whose `parentId` is in that set (no recursive SQL)
+- Exam lifecycle: `DRAFT` → `APPROVED` (via `POST /api/admin/exams/{id}/submit`)
+- Total marks auto-calculated: sum of `marksOverride ?? question.marks ?? 1` per `exam_questions` row
+- Auto-save: clicking `[+]` on a question when no exam exists triggers `saveExam()` first (requires name field filled)
+- Reorder sends full ordered `questionId[]` list; backend validates length + ID membership
+- Domains: `Exam`, `ExamQuestion`; repositories: `ExamRepository`, `ExamQuestionRepository`
+- JS: `static/js/exam.js`; template: `templates/admin/exam-builder.html`
+
 ### Security Architecture
 
 - Spring Security 6, stateless sessions (`STATELESS`)
@@ -86,8 +100,10 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 - `users.role` CHECK constraint: `('ADMIN','TEACHER','STUDENT','PARENT')`
 - `course_nodes.parent_id` self-references with `ON DELETE CASCADE`
 - `course_nodes` has DB-level CHECK: `type != 'QUESTION' OR parent_id IS NOT NULL` (questions must have a parent)
+- `exams.status` CHECK constraint: `('DRAFT','APPROVED')`
+- `exam_questions` has UNIQUE constraint on `(exam_id, question_id)`; `ON DELETE CASCADE` from both `exams` and `course_nodes`
 - Index on `users(email, role)` for login queries
-- Flyway migration order: `V1__init_users.sql` → `V2__password_reset_tokens.sql` → `V3__course_nodes.sql`
+- Flyway migration order: `V1__init_users.sql` → `V2__password_reset_tokens.sql` → `V3__course_nodes.sql` → `V4__course_nodes_expand.sql` → `V5__reset_admin_password.sql` → `V6__assessment_designer.sql`
 
 ## NFRs to Keep in Mind
 
@@ -100,5 +116,4 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 
 ## Planned Modules
 
-- Module 3: Teacher Submission Workflow
 - Module 4: Student Course View
