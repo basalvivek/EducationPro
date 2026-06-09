@@ -14,7 +14,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/course-nodes")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
 @RequiredArgsConstructor
 public class CourseNodeController {
 

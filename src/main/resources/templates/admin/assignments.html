@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>EducationPro — Assignments</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"/>
+  <link rel="stylesheet" th:href="@{/css/main.css}"/>
+  <style>
+    /* ── Card locked state ── */
+    .card-locked { opacity:.52; pointer-events:none; user-select:none; }
+
+    /* ── Course info panel ── */
+    .course-info-panel { background:#f8fbff; border:1px solid #cce0ff; border-radius:10px; padding:.625rem .75rem; }
+    .course-info-panel .info-row { display:flex; align-items:flex-start; gap:.5rem; padding:.35rem .4rem; border-bottom:1px solid #e6edf7; border-radius:6px; }
+    .course-info-panel .info-row:last-child { border-bottom:none; }
+    .course-info-panel .info-row.selectable-row { cursor:pointer; transition:background .15s; }
+    .course-info-panel .info-row.selectable-row:hover { background:rgba(13,110,253,.05); }
+    .course-info-panel .info-row.selectable-row.scope-selected { background:rgba(13,110,253,.09); border-radius:6px; }
+    .scope-radio { accent-color:#0d6efd; cursor:pointer; margin-top:5px; flex-shrink:0; }
+    .course-info-panel .info-icon { width:26px; height:26px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:.75rem; flex-shrink:0; margin-top:2px; }
+    .course-info-panel .info-label { font-size:.67rem; color:#6c757d; text-transform:uppercase; letter-spacing:.04em; font-weight:600; line-height:1.1; }
+    .course-info-panel .info-val   { font-size:.8rem; font-weight:600; color:#1a2332; line-height:1.25; }
+    .course-info-panel .info-sub   { font-size:.7rem; color:#5f6d80; line-height:1.3; }
+
+    /* ── Card stat strip ── */
+    .card-stat-strip { display:flex; align-items:stretch; background:#f0f4ff; border:1px solid #d0e0ff; border-radius:8px; overflow:hidden; }
+    .card-stat-strip .stat-chip { flex:1; display:flex; align-items:center; justify-content:center; gap:.25rem; padding:.45rem .5rem; border-right:1px solid #d0e0ff; font-size:.72rem; white-space:nowrap; }
+    .card-stat-strip .stat-chip:last-child { border-right:none; }
+    .card-stat-strip .stat-chip-icon { font-size:.75rem; flex-shrink:0; }
+    .card-stat-strip .stat-chip-val { font-weight:700; color:#1a2332; }
+    .card-stat-strip .stat-chip-label { color:#6c757d; }
+    .card-stat-strip .stat-chip-sep { color:#9ca3af; font-weight:400; margin:0 .1rem; }
+
+    /* ── Group cards ── */
+    .group-card { background:#fff; border:1px solid #e8edf3; border-left:4px solid; border-radius:10px; padding:.875rem 1rem; margin-bottom:.75rem; }
+    :root { --group-success:#198754; --group-primary:#0d6efd; --group-purple:#6f42c1; }
+
+    /* ── Student chips ── */
+    .student-chips-area { display:flex; flex-wrap:wrap; gap:.3rem; min-height:26px; }
+    .student-chip { width:28px; height:28px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:.65rem; font-weight:700; cursor:default; }
+    .chip-success { background:#d1fae5; color:#065f46; }
+    .chip-primary { background:#dbeafe; color:#1e40af; }
+    .chip-purple  { background:#ede9fe; color:#5b21b6; }
+    .chip-muted   { background:#f1f3f5; color:#6c757d; border:1px solid #dee2e6; font-size:.6rem; }
+
+    /* ── Student check rows (modal) ── */
+    .student-check-row:hover { background:#f8f9fa; }
+    .student-avatar-sm { width:28px; height:28px; border-radius:50%; background:#dbeafe; color:#1e40af; display:inline-flex; align-items:center; justify-content:center; font-size:.65rem; font-weight:700; flex-shrink:0; }
+    .teacher-avatar-sm { width:32px; height:32px; border-radius:50%; background:#e0e7ff; color:#3730a3; display:inline-flex; align-items:center; justify-content:center; font-size:.68rem; font-weight:700; flex-shrink:0; }
+
+    /* ── Summary cards ── */
+    .summary-card { background:#fff; border:1px solid #e8edf3; border-radius:10px; padding:.875rem 1.125rem; text-align:center; }
+    .summary-card .sum-val   { font-size:1.75rem; font-weight:800; line-height:1.1; }
+    .summary-card .sum-label { font-size:.72rem; color:#6c757d; font-weight:500; margin-top:.2rem; }
+
+    /* ── Teacher check rows (modal) ── */
+    .teacher-check-row:hover { background:#f8f9fa; }
+    .teacher-check-row.is-activated { background:#f0f7ff; }
+
+    /* ── Topbar toast ── */
+    #toastContainer { position:fixed; bottom:1.25rem; right:1.25rem; z-index:9999; display:flex; flex-direction:column; gap:.5rem; }
+  </style>
+</head>
+<body class="d-flex" style="min-height:100vh; background:var(--bg-app); overflow:hidden;">
+
+  <!-- ── SIDEBAR ──────────────────────────────────────────────────────────── -->
+  <nav class="sidebar" aria-label="Admin navigation">
+
+    <a href="/admin/dashboard" class="sidebar__brand">
+      <i class="bi bi-mortarboard-fill"></i>
+      <span>EduPro Admin</span>
+    </a>
+
+    <ul class="sidebar__nav">
+
+      <li class="sidebar__group-label">Overview</li>
+      <li><a class="nav-link" href="/admin/dashboard"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
+      <li><a class="nav-link" href="/admin/analytics"><i class="bi bi-bar-chart-line"></i><span>Analytics</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-bell"></i><span>Notifications</span></a></li>
+
+      <li class="sidebar__group-label">Academic Management</li>
+      <li><a class="nav-link" href="/admin/courses/design"><i class="bi bi-diagram-3"></i><span>Design Courses</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-signpost-split"></i><span>Learning Paths</span></a></li>
+      <li><a class="nav-link" href="/admin/exams/builder"><i class="bi bi-journal-check"></i><span>Assessment Designer</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-patch-question"></i><span>Question Bank</span></a></li>
+      <li><a class="nav-link active" href="/admin/assignments" aria-current="page"><i class="bi bi-clipboard2-check"></i><span>Assignments</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-award"></i><span>Certificates</span></a></li>
+
+      <li class="sidebar__group-label">Faculty Management</li>
+      <li><a class="nav-link" href="/admin/teachers"><i class="bi bi-person-badge"></i><span>Teachers</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-building"></i><span>Departments</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-briefcase"></i><span>Workload Management</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-calendar-check"></i><span>Attendance</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-star-half"></i><span>Performance Reviews</span></a></li>
+
+      <li class="sidebar__group-label">Student Management</li>
+      <li><a class="nav-link" href="/admin/students"><i class="bi bi-mortarboard"></i><span>Students</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-person-plus"></i><span>Enrollments</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-calendar2-check"></i><span>Attendance</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-graph-up"></i><span>Progress Tracking</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-trophy"></i><span>Achievements</span></a></li>
+
+      <li class="sidebar__group-label">Assessment &amp; Evaluation</li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-patch-question-fill"></i><span>Question Bank</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-calendar-event"></i><span>Exam Scheduling</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-inbox"></i><span>Submissions</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-clipboard-data"></i><span>Results</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-pencil-square"></i><span>Grading</span></a></li>
+
+      <li class="sidebar__group-label">Operations</li>
+      <li><a class="nav-link" href="/admin/approvals"><i class="bi bi-check2-circle"></i><span>Approvals</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-hand-index-thumb"></i><span>Requests</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-calendar3"></i><span>Leave Management</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-megaphone"></i><span>Announcements</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-calendar-week"></i><span>Events</span></a></li>
+
+      <li class="sidebar__group-label">Insights &amp; Reporting</li>
+      <li><a class="nav-link" href="/admin/analytics"><i class="bi bi-bar-chart-line"></i><span>Analytics</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-speedometer"></i><span>Performance Dashboard</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-person-check"></i><span>Student Success Metrics</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-graph-up-arrow"></i><span>Faculty Analytics</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-file-earmark-text"></i><span>Custom Reports</span></a></li>
+
+    </ul>
+
+    <ul class="sidebar__nav-bottom">
+      <li>
+        <a class="nav-link" href="/auth/logout" onclick="sessionStorage.clear()">
+          <i class="bi bi-box-arrow-right"></i>
+          <span>Sign out</span>
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- ── MAIN ─────────────────────────────────────────────────────────────── -->
+  <div class="flex-grow-1 d-flex flex-column overflow-hidden">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+          <li class="breadcrumb-item"><a href="/admin/dashboard">Dashboard</a></li>
+          <li class="breadcrumb-item active" aria-current="page">Assignments</li>
+        </ol>
+      </nav>
+
+      <div class="topbar__actions">
+        <button class="topbar__icon-btn" aria-label="Notifications">
+          <i class="bi bi-bell"></i>
+        </button>
+        <div class="dropdown">
+          <button class="topbar-user-btn dropdown-toggle" data-bs-toggle="dropdown"
+                  aria-expanded="false" id="topbarUserBtn">
+            <span class="topbar-avatar" id="topbarAvatar">A</span>
+            <span id="topbarName">Admin</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><h6 class="dropdown-header">Super Admin</h6></li>
+            <li><a class="dropdown-item disabled"><i class="bi bi-people me-2 text-muted"></i>Users</a></li>
+            <li><a class="dropdown-item disabled"><i class="bi bi-shield-lock me-2 text-muted"></i>Roles &amp; Permissions</a></li>
+            <li><a class="dropdown-item disabled"><i class="bi bi-building-gear me-2 text-muted"></i>Organizations</a></li>
+            <li><a class="dropdown-item disabled"><i class="bi bi-gear me-2 text-muted"></i>System Settings</a></li>
+            <li><a class="dropdown-item disabled"><i class="bi bi-journal-text me-2 text-muted"></i>Audit Logs</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <a class="dropdown-item" href="/auth/logout" onclick="sessionStorage.clear()">
+                <i class="bi bi-box-arrow-right me-2 text-muted"></i>Sign out
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── PAGE CONTENT ──────────────────────────────────────────────────── -->
+    <main class="flex-grow-1 overflow-auto p-4">
+
+      <!-- Page header -->
+      <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+          <h1 class="h4 fw-bold mb-1" style="color:#1a2332;">Assignments</h1>
+          <p class="text-muted mb-0" style="font-size:.85rem;">Select a course, create student groups, and assign teachers.</p>
+        </div>
+        <span class="badge bg-warning text-dark px-3 py-2" style="font-size:.75rem; font-weight:600;">
+          <i class="bi bi-pencil me-1"></i>Draft
+        </span>
+      </div>
+
+      <!-- ─────────────────────────────────────────────────────────────────── -->
+      <!-- Row 1: 3 Setup Cards                                                -->
+      <!-- ─────────────────────────────────────────────────────────────────── -->
+      <div class="row g-3 mb-4">
+
+        <!-- Card 1: Select Course -->
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm h-100" style="border-radius:12px;">
+            <div class="card-body p-3">
+              <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="stat-card__icon stat-card__icon--blue flex-shrink-0" style="width:36px;height:36px;font-size:.9rem;">
+                  <i class="bi bi-journal-richtext"></i>
+                </div>
+                <div>
+                  <div class="fw-semibold" style="font-size:.9rem;color:#1a2332;">Select Course</div>
+                  <div class="text-muted" style="font-size:.72rem;">Choose the course to assign</div>
+                </div>
+              </div>
+
+              <label class="form-label small fw-medium" for="courseSelect">Course</label>
+              <select class="form-select form-select-sm mb-3" id="courseSelect"
+                      onchange="onCourseChange()" style="font-size:.82rem;">
+                <option value="">— Select a course —</option>
+              </select>
+
+              <!-- Info panel (hidden until course selected) -->
+              <div id="courseInfoPanel" class="course-info-panel" style="display:none;">
+
+                <div class="info-row selectable-row" id="scopeRow_course" onclick="onScopeRowClick('course')">
+                  <input type="radio" name="scopeRadio" id="scopeRadio_course" class="scope-radio"
+                         onchange="onScopeRadioChange('course')">
+                  <div class="info-icon" style="background:#dbeafe;color:#1e40af;"><i class="bi bi-journal-richtext"></i></div>
+                  <div class="flex-grow-1 min-width-0">
+                    <div class="info-label">Course (L1)</div>
+                    <div class="info-val" id="infoCourseName"></div>
+                    <div class="info-sub" id="infoCourseDesc"></div>
+                  </div>
+                </div>
+
+                <div class="info-row selectable-row" id="scopeRow_subject" onclick="onScopeRowClick('subject')">
+                  <input type="radio" name="scopeRadio" id="scopeRadio_subject" class="scope-radio"
+                         onchange="onScopeRadioChange('subject')">
+                  <div class="info-icon" style="background:#d1fae5;color:#065f46;"><i class="bi bi-book"></i></div>
+                  <div class="flex-grow-1 min-width-0">
+                    <div class="info-label">Subject (L2)</div>
+                    <div class="d-flex align-items-center gap-1 flex-wrap">
+                      <div class="info-val" id="infoSubjectName"></div>
+                      <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle"
+                            style="font-size:.65rem;" id="infoSubjectBadge"></span>
+                    </div>
+                    <div class="info-sub" id="infoSubjectDesc"></div>
+                  </div>
+                </div>
+
+                <div class="info-row selectable-row" id="scopeRow_board" onclick="onScopeRowClick('board')">
+                  <input type="radio" name="scopeRadio" id="scopeRadio_board" class="scope-radio"
+                         onchange="onScopeRadioChange('board')">
+                  <div class="info-icon" style="background:#fef3c7;color:#92400e;"><i class="bi bi-building"></i></div>
+                  <div class="flex-grow-1 min-width-0">
+                    <div class="info-label">Exam Board (L3)</div>
+                    <div class="info-val" id="infoBoardName"></div>
+                    <div class="info-sub" id="infoBoardDesc"></div>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Stat strip — shown when course selected -->
+              <div id="cardStatStrip" class="card-stat-strip mt-2" style="display:none;">
+                <div class="stat-chip">
+                  <i class="bi bi-diagram-3 stat-chip-icon" style="color:#6f42c1;"></i>
+                  <span class="stat-chip-val" id="infoTopicCount">—</span>
+                  <span class="stat-chip-label">Topics</span>
+                  <span class="stat-chip-sep">·</span>
+                  <span class="stat-chip-val" id="infoQuestionCount">—</span>
+                  <span class="stat-chip-label">Qs</span>
+                </div>
+                <div class="stat-chip">
+                  <i class="bi bi-people stat-chip-icon" style="color:#9d174d;"></i>
+                  <span class="stat-chip-val" id="infoStudentCount">—</span>
+                  <span class="stat-chip-label">Students</span>
+                </div>
+                <div class="stat-chip">
+                  <i class="bi bi-calendar-range stat-chip-icon" style="color:#0369a1;"></i>
+                  <span class="stat-chip-val" id="infoAcademicPeriod">—</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Create Groups -->
+        <div class="col-md-4 card-locked" id="card2">
+          <div class="card border-0 shadow-sm h-100" style="border-radius:12px;">
+            <div class="card-body p-3">
+              <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="stat-card__icon stat-card__icon--green flex-shrink-0" style="width:36px;height:36px;font-size:.9rem;">
+                  <i class="bi bi-people-fill"></i>
+                </div>
+                <div>
+                  <div class="fw-semibold" style="font-size:.9rem;color:#1a2332;">Create Groups</div>
+                  <div class="text-muted" style="font-size:.72rem;">Organise students into groups</div>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label small fw-medium">Course</label>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text" style="background:#f0f4ff;border-color:#c7d7f7;">
+                    <i class="bi bi-journal-richtext text-primary" style="font-size:.8rem;"></i>
+                  </span>
+                  <input type="text" class="form-control form-control-sm" id="card2ScopeDisplay"
+                         readonly placeholder="← Select a level from Course panel"
+                         style="font-size:.8rem;background:#f8f9fa;color:#1a2332;font-weight:500;">
+                </div>
+                <div class="text-muted mt-1" style="font-size:.7rem;" id="card2ScopeHint">Select Course, Subject, or Exam Board from panel</div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label small fw-medium" for="groupingMethod">Grouping Method</label>
+                <select class="form-select form-select-sm" id="groupingMethod" style="font-size:.82rem;">
+                  <option value="capacity">By Capacity</option>
+                  <option value="manual" disabled>Manual (coming soon)</option>
+                  <option value="auto" disabled>Auto-Balance (coming soon)</option>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label small fw-medium" for="maxStudentsInput">Max Students per Group</label>
+                <input type="number" class="form-control form-control-sm" id="maxStudentsInput"
+                       value="30" min="1" max="200" style="font-size:.82rem;">
+              </div>
+
+              <!-- Success message -->
+              <div class="alert alert-success py-2 px-3 mb-3 small" id="groupSuccessMsg" style="display:none;"></div>
+
+              <button class="btn btn-sm btn-success w-100 fw-semibold" onclick="openCreateGroupModal()">
+                <i class="bi bi-plus-circle me-1"></i>Create Group
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Assign Teachers -->
+        <div class="col-md-4 card-locked" id="card3">
+          <div class="card border-0 shadow-sm h-100" style="border-radius:12px;">
+            <div class="card-body p-3">
+              <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="stat-card__icon stat-card__icon--purple flex-shrink-0" style="width:36px;height:36px;font-size:.9rem;">
+                  <i class="bi bi-person-badge-fill"></i>
+                </div>
+                <div>
+                  <div class="fw-semibold" style="font-size:.9rem;color:#1a2332;">Assign Teachers</div>
+                  <div class="text-muted" style="font-size:.72rem;">Match teachers to groups</div>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label small fw-medium" for="assignmentMethod">Assignment Method</label>
+                <select class="form-select form-select-sm" id="assignmentMethod" style="font-size:.82rem;">
+                  <option value="manual">Manual</option>
+                  <option value="auto" disabled>Auto-Match (coming soon)</option>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label small fw-medium" for="subjectFilter">Filter by Subject</label>
+                <select class="form-select form-select-sm" id="subjectFilter" style="font-size:.82rem;">
+                  <option value="">— All Subjects —</option>
+                </select>
+              </div>
+
+              <button class="btn btn-sm btn-purple w-100 fw-semibold mb-3" onclick="openAssignTeachersModal()"
+                      style="background:#6f42c1;border-color:#6f42c1;color:#fff;">
+                <i class="bi bi-person-badge me-1"></i>Assign Teachers
+              </button>
+
+              <div class="alert mb-0 py-2 px-3" role="alert"
+                   style="background:#f3f0ff;border:1px solid #c4b5fd;border-radius:8px;font-size:.75rem;color:#4c1d95;">
+                <i class="bi bi-info-circle me-1"></i>
+                Select a subject, then click <strong>Assign Teachers</strong> to pick teachers for this assignment.
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ─────────────────────────────────────────────────────────────────── -->
+      <!-- Row 2: Groups panel + Teachers panel                               -->
+      <!-- ─────────────────────────────────────────────────────────────────── -->
+      <div class="row g-3 mb-4">
+
+        <!-- Groups & Students -->
+        <div class="col-md-5">
+          <div class="card border-0 shadow-sm h-100" style="border-radius:12px;">
+            <div class="card-header bg-white border-0 d-flex align-items-center justify-content-between pb-0 pt-3 px-3">
+              <div class="d-flex align-items-center gap-2">
+                <span class="fw-semibold" style="font-size:.88rem;color:#1a2332;">Groups &amp; Students</span>
+                <span class="badge bg-secondary-subtle text-secondary-emphasis border" style="font-size:.7rem;" id="groupCountChip">0 Groups</span>
+              </div>
+              <div style="max-width:180px;">
+                <input class="form-control form-control-sm" style="font-size:.78rem;" placeholder="Search groups…"
+                       oninput="filterGroupsPanel(this.value)">
+              </div>
+            </div>
+            <div class="card-body p-3 overflow-auto" style="max-height:420px;">
+
+              <!-- Empty state -->
+              <div id="groupsEmpty" class="text-center py-5">
+                <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                     style="width:56px;height:56px;background:#f0f7ff;">
+                  <i class="bi bi-people" style="font-size:1.4rem;color:#6ea8fe;"></i>
+                </div>
+                <div class="fw-medium text-muted small">No groups yet</div>
+                <div class="text-muted" style="font-size:.75rem;">Create a group using Card 2 above</div>
+              </div>
+
+              <!-- Groups list -->
+              <div id="groupsContainer" style="display:none;"></div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Teachers & Assignments -->
+        <div class="col-md-7">
+          <div class="card border-0 shadow-sm h-100" style="border-radius:12px;">
+            <div class="card-header bg-white border-0 d-flex align-items-center justify-content-between pb-0 pt-3 px-3">
+              <span class="fw-semibold" style="font-size:.88rem;color:#1a2332;">Teachers &amp; Assignments</span>
+              <button class="btn btn-sm btn-outline-primary" style="font-size:.78rem;" disabled>
+                <i class="bi bi-plus me-1"></i>Add Teacher
+              </button>
+            </div>
+            <div class="card-body p-0 overflow-auto" style="max-height:420px;">
+              <table class="table table-sm table-hover align-middle mb-0" style="font-size:.82rem;">
+                <thead class="table-light sticky-top">
+                  <tr>
+                    <th class="px-3 py-2">Teacher</th>
+                    <th class="py-2">Expertise / Dept</th>
+                    <th class="py-2">Assigned Group</th>
+                    <th class="py-2 pe-3">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="teachersBody">
+                  <tr>
+                    <td colspan="4" class="text-center text-muted py-4 small">Loading teachers…</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ─────────────────────────────────────────────────────────────────── -->
+      <!-- Row 3: Summary + Actions                                            -->
+      <!-- ─────────────────────────────────────────────────────────────────── -->
+      <div class="row g-3 align-items-center">
+
+        <!-- Summary cards -->
+        <div class="col-lg-7">
+          <div class="row g-2">
+            <div class="col-6 col-sm-3">
+              <div class="summary-card">
+                <div class="sum-val text-primary" id="sumStudents">—</div>
+                <div class="sum-label">Total Students</div>
+              </div>
+            </div>
+            <div class="col-6 col-sm-3">
+              <div class="summary-card">
+                <div class="sum-val text-success" id="sumGroups">0</div>
+                <div class="sum-label">Total Groups</div>
+              </div>
+            </div>
+            <div class="col-6 col-sm-3">
+              <div class="summary-card">
+                <div class="sum-val" style="color:#6f42c1;" id="sumAssigned">0</div>
+                <div class="sum-label">Assigned Teachers</div>
+              </div>
+            </div>
+            <div class="col-6 col-sm-3">
+              <div class="summary-card">
+                <div class="sum-val text-warning" id="sumUnassigned">0</div>
+                <div class="sum-label">Unassigned Groups</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="col-lg-5 d-flex justify-content-end gap-2 flex-wrap">
+          <button class="btn btn-secondary btn-sm px-3" onclick="window.history.back()">
+            <i class="bi bi-pencil me-1"></i>Edit
+          </button>
+          <button id="btnSaveDraft" class="btn btn-outline-primary btn-sm px-3" onclick="saveAsDraft()">
+            <i class="bi bi-floppy me-1"></i>Save as Draft
+          </button>
+          <button id="btnReviewSave" class="btn btn-primary btn-sm px-4 fw-semibold" onclick="reviewAndSave()">
+            <i class="bi bi-check-circle me-1"></i>Review &amp; Save
+          </button>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ── Create Group Modal ──────────────────────────────────────────────── -->
+  <div class="modal fade" id="createGroupModal" tabindex="-1" aria-labelledby="createGroupModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content" style="border-radius:14px;border:none;">
+
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title fw-bold" id="createGroupModalLabel" style="font-size:1rem;">
+            <i class="bi bi-people-fill me-2 text-success"></i>Create New Group
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body pt-2">
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-medium" for="groupNameInput">Group Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control form-control-sm" id="groupNameInput"
+                     placeholder="e.g. Group A" style="font-size:.82rem;">
+              <div class="invalid-feedback">Group name is required.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-medium" for="groupPeriodInput">Academic Period</label>
+              <input type="text" class="form-control form-control-sm" id="groupPeriodInput"
+                     placeholder="e.g. 2025–2026" style="font-size:.82rem;">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-medium" for="groupDescInput">Description</label>
+              <input type="text" class="form-control form-control-sm" id="groupDescInput"
+                     placeholder="Optional description" style="font-size:.82rem;">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-medium">Course</label>
+              <input type="text" class="form-control form-control-sm" id="modalCourseName"
+                     readonly style="font-size:.82rem;background:#f8f9fa;">
+            </div>
+          </div>
+
+          <!-- Student selection -->
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="fw-semibold" style="font-size:.85rem;">
+              Select Students
+              <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle ms-1">
+                <span id="modalSelCount">0</span> / <span id="modalMaxCount">30</span>
+              </span>
+            </div>
+            <input class="form-control form-control-sm" style="max-width:200px;font-size:.78rem;"
+                   id="studentSearchModal" placeholder="Search students…"
+                   oninput="renderModalStudents(this.value)">
+          </div>
+
+          <!-- Capacity warning -->
+          <div class="alert alert-warning py-2 px-3 mb-2 small" id="maxStudentsWarning" style="display:none;">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            Max capacity (<span id="modalMaxStudents">30</span>) reached. Deselect students to add others.
+          </div>
+
+          <div id="studentCheckList" class="border rounded p-2 overflow-auto" style="max-height:260px;"></div>
+
+        </div>
+
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-success btn-sm px-4 fw-semibold" onclick="saveGroup()">
+            <i class="bi bi-check-circle me-1"></i>Create Group
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Assign Teachers Modal ──────────────────────────────────────────── -->
+  <div class="modal fade" id="assignTeachersModal" tabindex="-1"
+       aria-labelledby="assignTeachersModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content" style="border-radius:14px;border:none;">
+
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title fw-bold" id="assignTeachersModalLabel" style="font-size:1rem;">
+            <i class="bi bi-person-badge-fill me-2" style="color:#6f42c1;"></i>Assign Teachers
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body pt-2">
+
+          <!-- Subject (readonly) -->
+          <div class="mb-3">
+            <label class="form-label small fw-medium">Subject Filter</label>
+            <div class="input-group input-group-sm">
+              <span class="input-group-text" style="background:#f3f0ff;border-color:#c4b5fd;">
+                <i class="bi bi-book" style="color:#6f42c1;font-size:.8rem;"></i>
+              </span>
+              <input type="text" class="form-control form-control-sm" id="modalAssignSubject"
+                     readonly style="font-size:.82rem;background:#f8f9fa;color:#1a2332;font-weight:500;">
+            </div>
+          </div>
+
+          <!-- Header row -->
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="fw-semibold" style="font-size:.85rem;">
+              Select Teachers
+              <span class="badge ms-1" id="modalTeacherSelBadge"
+                    style="background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd;font-size:.7rem;">
+                0 selected
+              </span>
+            </div>
+            <input class="form-control form-control-sm" style="max-width:200px;font-size:.78rem;"
+                   id="teacherSearchModal" placeholder="Search teachers…"
+                   oninput="renderModalTeachers(this.value)">
+          </div>
+
+          <!-- Teacher list -->
+          <div id="teacherCheckList" class="border rounded p-2 overflow-auto"
+               style="max-height:320px;"></div>
+
+        </div>
+
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-sm px-4 fw-semibold" id="assignConfirmBtn"
+                  onclick="confirmAssignTeachers()"
+                  style="background:#6f42c1;border-color:#6f42c1;color:#fff;">
+            <i class="bi bi-check-circle me-1"></i>Assign
+            <span id="modalAssignCount">0</span> Teacher(s)
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toastContainer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script th:src="@{/js/assignments.js}"></script>
+</body>
+</html>

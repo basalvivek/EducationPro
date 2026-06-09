@@ -69,9 +69,9 @@ function renderNode(node) {
   row.setAttribute('aria-selected', node.id === selectedId ? 'true' : 'false');
   row.setAttribute('aria-expanded', node.expanded ? 'true' : 'false');
 
-  const arrow = document.createElement('span');
-  arrow.className = 'tree-arrow me-1' + (isQuestion ? ' invisible' : '');
-  arrow.textContent = node.expanded ? '▾' : '›';
+  const arrow = document.createElement('i');
+  arrow.className = 'bi tree-arrow me-1'
+    + (isQuestion ? ' invisible' : (node.expanded ? ' bi-chevron-down' : ' bi-chevron-right'));
   arrow.setAttribute('aria-hidden', 'true');
   arrow.addEventListener('click', e => { e.stopPropagation(); toggleExpand(node.id); });
 
@@ -786,16 +786,15 @@ function openDetailPanel(node) {
     </div>`).join('');
 
   form.innerHTML = `
-    <div class="d-flex align-items-center mb-4 gap-2">
-      <i class="bi ${isQuestion ? 'bi-patch-question-fill text-warning' : 'bi-folder2 text-primary'} fs-3"
-         aria-hidden="true"></i>
-      <h4 class="fw-bold mb-0">${isQuestion ? 'Question' : 'Node'} Details</h4>
-      <span class="badge ${isQuestion ? 'bg-warning text-dark' : 'bg-primary'} ms-auto">
-        ${node.type}
-      </span>
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <div style="width:28px;height:28px;border-radius:8px;background:${isQuestion?'#fef9c3':'#e8f0fe'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="bi ${isQuestion?'bi-patch-question-fill':'bi-folder2'}" style="color:${isQuestion?'#b45309':'#0d6efd'};font-size:.8rem;" aria-hidden="true"></i>
+      </div>
+      <span style="font-size:.875rem;font-weight:700;color:#1a2332;">${isQuestion?'Question':'Node'} Details</span>
+      <span class="badge ${isQuestion?'bg-warning text-dark':'bg-primary'} ms-auto" style="font-size:.65rem;">${node.type}</span>
     </div>
 
-    <div class="card card-form p-4 bg-white mb-3">
+    <div class="card-form p-4 mb-3">
       <div class="mb-3">
         <label class="form-label fw-semibold label-sm" for="detailTitle">Title</label>
         <input type="text" class="form-control" id="detailTitle"

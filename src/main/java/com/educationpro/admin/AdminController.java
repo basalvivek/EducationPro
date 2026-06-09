@@ -24,4 +24,34 @@ public class AdminController {
     public String examBuilder() {
         return "admin/exam-builder";
     }
+
+    @GetMapping("/approvals")
+    public String approvals() {
+        return "admin/approvals";
+    }
+
+    @GetMapping("/teachers")
+    public String teachers() {
+        return "admin/teachers";
+    }
+
+    @GetMapping("/teachers/register")
+    public String teacherRegister() {
+        return "admin/teacher-register";
+    }
+
+    @GetMapping("/students")
+    public String students() {
+        return "admin/students";
+    }
+
+    @GetMapping("/students/register")
+    public String studentRegister() {
+        return "admin/student-register";
+    }
+
+    @GetMapping("/assignments")
+    public String assignments() {
+        return "admin/assignments";
+    }
 }

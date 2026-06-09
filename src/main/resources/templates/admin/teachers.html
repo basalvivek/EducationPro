@@ -3,30 +3,26 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>EducationPro — Admin Dashboard</title>
+  <title>EduPro — Teachers</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
-  <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"/>
   <link rel="stylesheet" th:href="@{/css/main.css}"/>
 </head>
 <body class="d-flex" style="min-height:100vh; background:var(--bg-app); overflow:hidden;">
 
   <!-- ── SIDEBAR ──────────────────────────────────────────────────────────── -->
   <nav class="sidebar" aria-label="Admin navigation">
-
     <a href="/admin/dashboard" class="sidebar__brand">
       <i class="bi bi-mortarboard-fill"></i>
       <span>EduPro Admin</span>
     </a>
-
     <ul class="sidebar__nav">
 
       <li class="sidebar__group-label">Overview</li>
-      <li><a class="nav-link active" href="/admin/dashboard" aria-current="page"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
+      <li><a class="nav-link" href="/admin/dashboard"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
       <li><a class="nav-link" href="/admin/analytics"><i class="bi bi-bar-chart-line"></i><span>Analytics</span></a></li>
       <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span></a></li>
       <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-bell"></i><span>Notifications</span></a></li>
@@ -40,7 +36,7 @@
       <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-award"></i><span>Certificates</span></a></li>
 
       <li class="sidebar__group-label">Faculty Management</li>
-      <li><a class="nav-link" href="/admin/teachers"><i class="bi bi-person-badge"></i><span>Teachers</span></a></li>
+      <li><a class="nav-link active" href="/admin/teachers" aria-current="page"><i class="bi bi-person-badge"></i><span>Teachers</span></a></li>
       <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-building"></i><span>Departments</span></a></li>
       <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-briefcase"></i><span>Workload Management</span></a></li>
       <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-calendar-check"></i><span>Attendance</span></a></li>
@@ -76,35 +72,24 @@
 
 
     </ul>
-
     <ul class="sidebar__nav-bottom">
-      <li>
-        <a class="nav-link" href="/auth/logout" onclick="sessionStorage.clear()">
-          <i class="bi bi-box-arrow-right"></i>
-          <span>Sign out</span>
-        </a>
-      </li>
+      <li><a class="nav-link" href="/auth/logout" onclick="sessionStorage.clear()"><i class="bi bi-box-arrow-right"></i><span>Sign out</span></a></li>
     </ul>
   </nav>
 
-  <!-- ── MAIN ─────────────────────────────────────────────────────────────── -->
   <div class="flex-grow-1 d-flex flex-column overflow-hidden">
 
-    <!-- Topbar -->
     <header class="topbar">
       <nav aria-label="breadcrumb">
         <ol class="breadcrumb mb-0">
-          <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+          <li class="breadcrumb-item"><a href="/admin/dashboard">Home</a></li>
+          <li class="breadcrumb-item active">Teachers</li>
         </ol>
       </nav>
-
       <div class="topbar__actions">
-        <button class="topbar__icon-btn" aria-label="Notifications">
-          <i class="bi bi-bell"></i>
-        </button>
+        <button class="topbar__icon-btn" aria-label="Notifications"><i class="bi bi-bell"></i></button>
         <div class="dropdown">
-          <button class="topbar-user-btn dropdown-toggle" data-bs-toggle="dropdown"
-                  aria-expanded="false" id="topbarUserBtn">
+          <button class="topbar-user-btn dropdown-toggle" data-bs-toggle="dropdown">
             <span class="topbar-avatar" id="topbarAvatar">A</span>
             <span id="topbarName">Admin</span>
           </button>
@@ -116,167 +101,173 @@
             <li><a class="dropdown-item disabled"><i class="bi bi-gear me-2 text-muted"></i>System Settings</a></li>
             <li><a class="dropdown-item disabled"><i class="bi bi-journal-text me-2 text-muted"></i>Audit Logs</a></li>
             <li><hr class="dropdown-divider"></li>
-            <li>
-              <a class="dropdown-item" href="/auth/logout" onclick="sessionStorage.clear()">
-                <i class="bi bi-box-arrow-right me-2 text-muted"></i>Sign out
-              </a>
-            </li>
+            <li><a class="dropdown-item" href="/auth/logout" onclick="sessionStorage.clear()"><i class="bi bi-box-arrow-right me-2 text-muted"></i>Sign out</a></li>
           </ul>
         </div>
       </div>
     </header>
 
-    <!-- ── PAGE CONTENT ──────────────────────────────────────────────────── -->
     <main class="flex-grow-1 overflow-auto p-4">
 
-      <!-- Page header -->
-      <div class="page-header">
+      <div class="page-header mb-4">
         <div>
-          <div class="page-header__greeting" id="greetingText">Good morning</div>
-          <p class="page-header__sub mb-0">
-            Here's what's happening on your platform today.
-          </p>
+          <div class="page-header__greeting">Teachers</div>
+          <p class="page-header__sub mb-0">Manage registered teachers on your platform.</p>
         </div>
-        <span class="page-header__date">
-          <i class="bi bi-calendar3 me-1"></i>
-          <span id="todayDate"></span>
-        </span>
+        <a href="/admin/teachers/register" class="btn btn-primary">
+          <i class="bi bi-person-plus me-2"></i>Register Teacher
+        </a>
       </div>
 
-      <!-- ── Stat cards ── -->
+      <!-- Stats -->
       <div class="row g-3 mb-4">
-
-        <div class="col-xl-3 col-md-6">
+        <div class="col-md-3">
           <div class="stat-card stat-card--blue">
             <div class="d-flex align-items-center gap-3">
-              <div class="stat-card__icon stat-card__icon--blue">
-                <i class="bi bi-people-fill"></i>
-              </div>
-              <div class="flex-grow-1 min-width-0">
-                <div class="stat-card__value">—</div>
-                <div class="stat-card__label">Total Users</div>
+              <div class="stat-card__icon stat-card__icon--blue"><i class="bi bi-people-fill"></i></div>
+              <div>
+                <div class="stat-card__value" id="totalCount">—</div>
+                <div class="stat-card__label">Total Teachers</div>
               </div>
             </div>
           </div>
         </div>
-
-        <div class="col-xl-3 col-md-6">
+        <div class="col-md-3">
           <div class="stat-card stat-card--green">
             <div class="d-flex align-items-center gap-3">
-              <div class="stat-card__icon stat-card__icon--green">
-                <i class="bi bi-journal-richtext"></i>
-              </div>
-              <div class="flex-grow-1 min-width-0">
-                <div class="stat-card__value">—</div>
-                <div class="stat-card__label">Published Courses</div>
+              <div class="stat-card__icon stat-card__icon--green"><i class="bi bi-person-check-fill"></i></div>
+              <div>
+                <div class="stat-card__value" id="activeCount">—</div>
+                <div class="stat-card__label">Active</div>
               </div>
             </div>
           </div>
         </div>
-
-        <div class="col-xl-3 col-md-6">
+        <div class="col-md-3">
           <div class="stat-card stat-card--amber">
             <div class="d-flex align-items-center gap-3">
-              <div class="stat-card__icon stat-card__icon--amber">
-                <i class="bi bi-hourglass-split"></i>
-              </div>
-              <div class="flex-grow-1 min-width-0">
-                <div class="stat-card__value">—</div>
-                <div class="stat-card__label">Approvals Pending</div>
+              <div class="stat-card__icon stat-card__icon--amber"><i class="bi bi-person-dash-fill"></i></div>
+              <div>
+                <div class="stat-card__value" id="inactiveCount">—</div>
+                <div class="stat-card__label">Inactive / On Leave</div>
               </div>
             </div>
           </div>
         </div>
-
-        <div class="col-xl-3 col-md-6">
-          <div class="stat-card stat-card--purple">
-            <div class="d-flex align-items-center gap-3">
-              <div class="stat-card__icon stat-card__icon--purple">
-                <i class="bi bi-patch-question-fill"></i>
-              </div>
-              <div class="flex-grow-1 min-width-0">
-                <div class="stat-card__value">—</div>
-                <div class="stat-card__label">Questions in Bank</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
       </div>
 
-      <!-- ── Quick actions ── -->
-      <div class="mb-3">
-        <p class="label-sm mb-3">Quick Actions</p>
-        <div class="row g-3">
+      <!-- Search + filter bar -->
+      <div class="filter-card mb-3">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" class="form-control border-start-0" id="searchInput" placeholder="Search by name, email, department…"/>
+        </div>
+        <select class="form-select form-select-sm" id="filterStatus" style="max-width:160px;">
+          <option value="">All Statuses</option>
+          <option value="ACTIVE">Active</option>
+          <option value="INACTIVE">Inactive</option>
+          <option value="ON_LEAVE">On Leave</option>
+        </select>
+        <select class="form-select form-select-sm" id="filterType" style="max-width:160px;">
+          <option value="">All Types</option>
+          <option value="FULL_TIME">Full-Time</option>
+          <option value="PART_TIME">Part-Time</option>
+          <option value="CONTRACT">Contract</option>
+        </select>
+      </div>
 
-          <div class="col-md-4">
-            <a href="/admin/courses/design" class="quick-action quick-action--blue d-block">
-              <div class="stat-card__icon stat-card__icon--blue flex-shrink-0">
-                <i class="bi bi-diagram-3-fill"></i>
-              </div>
-              <div>
-                <div class="quick-action__label">Course Designer</div>
-                <div class="quick-action__link" style="color:#0d6efd;">
-                  Open Designer <i class="bi bi-arrow-right"></i>
-                </div>
-              </div>
-            </a>
-          </div>
-
-          <div class="col-md-4">
-            <a href="/admin/exams/builder" class="quick-action quick-action--green d-block">
-              <div class="stat-card__icon stat-card__icon--green flex-shrink-0">
-                <i class="bi bi-journal-check"></i>
-              </div>
-              <div>
-                <div class="quick-action__label">Assessment Designer</div>
-                <div class="quick-action__link" style="color:#198754;">
-                  Build Exams <i class="bi bi-arrow-right"></i>
-                </div>
-              </div>
-            </a>
-          </div>
-
-          <div class="col-md-4">
-            <a href="/admin/approvals" class="quick-action quick-action--amber d-block">
-              <div class="stat-card__icon stat-card__icon--amber flex-shrink-0">
-                <i class="bi bi-check2-circle"></i>
-              </div>
-              <div>
-                <div class="quick-action__label">Pending Approvals</div>
-                <div class="quick-action__link" style="color:#d97706;">
-                  Review Submissions <i class="bi bi-arrow-right"></i>
-                </div>
-              </div>
-            </a>
-          </div>
-
+      <!-- Teacher grid -->
+      <div id="teacherGrid" class="row g-3">
+        <div class="col-12 text-center py-5">
+          <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading…</span></div>
         </div>
       </div>
+
     </main>
   </div>
 
+  <div id="toastContainer" class="position-fixed bottom-0 end-0 p-3" style="z-index:9999;" aria-live="polite"></div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    (function() {
-      var name = sessionStorage.getItem('edu_name') || '';
-      var nameEl   = document.getElementById('topbarName');
-      var avatarEl = document.getElementById('topbarAvatar');
-      if (name) {
-        if (nameEl)   nameEl.textContent   = name;
-        if (avatarEl) avatarEl.textContent = name.charAt(0).toUpperCase();
+    function getToken() { return sessionStorage.getItem('edu_token') || ''; }
+    function authHeaders() { var h = {}; var t = getToken(); if (t) h['Authorization'] = 'Bearer ' + t; return h; }
+    function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    (function(){
+      var n = sessionStorage.getItem('edu_name') || '';
+      if (n) { document.getElementById('topbarName').textContent = n; document.getElementById('topbarAvatar').textContent = n.charAt(0).toUpperCase(); }
+    })();
+
+    var allTeachers = [];
+
+    async function load() {
+      var res = await fetch('/api/admin/teachers', { headers: authHeaders() });
+      allTeachers = res.ok ? await res.json() : [];
+      updateStats();
+      renderGrid();
+    }
+
+    function updateStats() {
+      document.getElementById('totalCount').textContent = allTeachers.length;
+      document.getElementById('activeCount').textContent = allTeachers.filter(t => t.employmentStatus === 'ACTIVE').length;
+      document.getElementById('inactiveCount').textContent = allTeachers.filter(t => t.employmentStatus !== 'ACTIVE').length;
+    }
+
+    function renderGrid() {
+      var q   = document.getElementById('searchInput').value.toLowerCase().trim();
+      var st  = document.getElementById('filterStatus').value;
+      var typ = document.getElementById('filterType').value;
+      var list = allTeachers.filter(t => {
+        var name = ((t.firstName||'') + ' ' + (t.lastName||'')).toLowerCase();
+        var matchQ  = !q  || name.includes(q) || (t.email||'').toLowerCase().includes(q) || (t.department||'').toLowerCase().includes(q);
+        var matchSt = !st  || t.employmentStatus === st;
+        var matchTp = !typ || t.employmentType   === typ;
+        return matchQ && matchSt && matchTp;
+      });
+
+      var grid = document.getElementById('teacherGrid');
+      if (!list.length) {
+        grid.innerHTML = '<div class="col-12"><div class="empty-state"><div class="empty-state__icon" style="background:#eff6ff;"><i class="bi bi-person-x" style="font-size:1.75rem;color:#3b82f6;"></i></div><div class="empty-state__title">No teachers found</div><p class="empty-state__sub">Try adjusting your search or filters.</p></div></div>';
+        return;
       }
 
-      var hour     = new Date().getHours();
-      var greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-      var first    = name ? ', ' + name.split(' ')[0] : '';
-      var greetEl  = document.getElementById('greetingText');
-      if (greetEl) greetEl.textContent = greeting + first;
+      grid.innerHTML = list.map(function(t) {
+        var statusCls = t.employmentStatus === 'ACTIVE' ? 'bg-success' : t.employmentStatus === 'ON_LEAVE' ? 'bg-warning text-dark' : 'bg-secondary';
+        var statusLbl = t.employmentStatus === 'ON_LEAVE' ? 'On Leave' : t.employmentStatus;
+        var initials  = ((t.firstName||'?').charAt(0) + (t.lastName||'').charAt(0)).toUpperCase();
+        var typeLbl   = t.employmentType === 'FULL_TIME' ? 'Full-Time' : t.employmentType === 'PART_TIME' ? 'Part-Time' : (t.employmentType || '—');
+        return '<div class="col-xl-3 col-lg-4 col-md-6">' +
+          '<div class="item-card">' +
+            '<div class="item-card__bar item-card__bar--blue"></div>' +
+            '<div class="item-card__body">' +
+              '<div class="d-flex align-items-center gap-2 mb-3">' +
+                '<div class="user-avatar user-avatar--lg user-avatar--blue">' + escHtml(initials) + '</div>' +
+                '<div class="overflow-hidden">' +
+                  '<div class="item-card__name text-truncate">' + escHtml((t.firstName||'') + ' ' + (t.lastName||'')) + '</div>' +
+                  '<div class="item-card__email text-truncate">' + escHtml(t.email||'') + '</div>' +
+                '</div>' +
+              '</div>' +
+              '<div class="meta-list mb-3">' +
+                '<div><i class="bi bi-briefcase me-2" style="color:#0d6efd;"></i>' + escHtml(t.designation||'—') + '</div>' +
+                '<div><i class="bi bi-building me-2" style="color:#0d6efd;"></i>' + escHtml(t.department||'—') + '</div>' +
+                '<div><i class="bi bi-calendar3 me-2" style="color:#0d6efd;"></i>' + (t.joiningDate ? 'Joined ' + t.joiningDate : '—') + '</div>' +
+              '</div>' +
+              '<div class="d-flex align-items-center justify-content-between">' +
+                '<span class="badge ' + statusCls + '">' + statusLbl + '</span>' +
+                '<span class="badge bg-light text-muted border">' + typeLbl + '</span>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
 
-      document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-US', {
-        weekday: 'short', year: 'numeric', month: 'short', day: 'numeric'
-      });
-    })();
+    document.getElementById('searchInput').addEventListener('input', renderGrid);
+    document.getElementById('filterStatus').addEventListener('change', renderGrid);
+    document.getElementById('filterType').addEventListener('change', renderGrid);
+
+    load();
   </script>
 </body>
 </html>

@@ -43,7 +43,7 @@
       color: #fff;
       display: flex;
       flex-direction: column;
-      background: linear-gradient(145deg, #0C447C, #185FA5);
+      background: linear-gradient(145deg, #1251c9, #0d6efd);
       transition: background 0.28s ease;
     }
 
@@ -390,7 +390,7 @@
       </div>
 
       <button type="submit" class="submit-btn" id="submitBtn"
-              style="background: linear-gradient(135deg, #0C447C, #185FA5)">
+              style="background: linear-gradient(135deg, #1251c9, #0d6efd)">
         <span id="btnLabel">Sign in as Admin</span>
       </button>
 
@@ -412,8 +412,8 @@
 /* ── Role definitions ────────────────────────────── */
 const ROLES = {
   ADMIN: {
-    from: '#0C447C', to: '#185FA5',
-    chipBg: '#E6F1FB', chipColor: '#0C447C',
+    from: '#1251c9', to: '#0d6efd',
+    chipBg: '#e8f0fe', chipColor: '#1251c9',
     icon: 'ti-shield-check', label: 'Administrator',
     portalTitle: 'Admin Portal',
     subtitle: 'Full control — users, courses, exams and reports',
@@ -424,9 +424,9 @@ const ROLES = {
       ['ti-settings',     'System configuration'],
     ],
     formSub: 'Sign in to your admin account',
-    placeholder: 'admin@localhost',
+    placeholder: 'admin@educationpro.com',
     btnLabel: 'Sign in as Admin',
-    accentColor: '#185FA5',
+    accentColor: '#0d6efd',
     footerText: 'Need help?',
     footerLink: 'Contact IT support',
     footerHref: '#',
@@ -451,7 +451,7 @@ const ROLES = {
     footerText: 'First time here?',
     footerLink: 'Request access',
     footerHref: '#',
-    redirect: '/teacher/dashboard.html',
+    redirect: '/teacher/dashboard',
   },
   STUDENT: {
     from: '#0e5a6e', to: '#0891b2',

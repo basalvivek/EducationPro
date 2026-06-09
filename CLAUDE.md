@@ -95,6 +95,22 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 - Toast notifications via `showToast(message, type)` appended to `#toastContainer` (fixed, bottom-right)
 - `escHtml()` required when injecting user content into `innerHTML`
 
+### Admin Shell Layout
+
+All admin pages share the same sidebar + topbar shell (no Thymeleaf fragments — duplicated across 6 templates). Update all when changing shared chrome.
+
+**Sidebar** (`<nav class="sidebar">`)
+- Background: `--sidebar-bg: #0c3577` (dark navy); width: 260px
+- Scrollable nav (`overflow-y: auto`) with 7 categorized groups using `.sidebar__group-label`
+- Disabled future items use `.nav-link.disabled` (38% opacity, pointer-events none)
+- Groups: Overview | Academic Management | Faculty Management | Student Management | Assessment & Evaluation | Operations | Insights & Reporting
+- Active items (implemented): Dashboard, Analytics, Design Courses, Assessment Designer, Teachers, Students, Approvals
+
+**Topbar** (`<header class="topbar">`)
+- Right side: bell icon + user avatar dropdown
+- User dropdown contains: **Super Admin** section header → Users, Roles & Permissions, Organizations, System Settings, Audit Logs (all disabled) → divider → Sign out
+- No separate Administration button; all admin items live inside the user dropdown
+
 ## Database Schema Key Points
 
 - `users.role` CHECK constraint: `('ADMIN','TEACHER','STUDENT','PARENT')`

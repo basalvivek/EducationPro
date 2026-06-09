@@ -91,6 +91,11 @@
   --bg-teacher:  #e8f5ee;
   --bg-student:  #f0ebff;
   --bg-parent:   #fff4e8;
+
+  /* Admin shell */
+  --sidebar-bg:    #0c3577;  /* dark navy — intentionally darker than --role-admin */
+  --sidebar-width: 260px;
+  --topbar-h:      60px;
 }
 
 /* Custom badge overrides */
@@ -667,85 +672,102 @@ public void sendResetLink(String email, String role) {
 After successful Admin login, redirect to `/admin/dashboard`.
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  [≡]  EducationPro Admin            [🔔] [Avatar ▾ Jane Smith]  │
-├───────────────┬─────────────────────────────────────────────────┤
-│               │                                                  │
-│  SIDEBAR      │  MAIN CONTENT AREA                              │
-│               │                                                  │
-│  📊 Dashboard │  [ Breadcrumb: Home > Design Courses ]          │
-│  🎓 Design    │                                                  │
-│     Courses ← │  ┌──────────────┬───────────────────────────┐  │
-│  👥 Users     │  │  TREE PANEL  │  DETAIL / FORM PANEL      │  │
-│  ✅ Approvals │  │              │                            │  │
-│  📈 Analytics │  │  (tree here) │  (node form here)         │  │
-│  ⚙️  Settings  │  │              │                            │  │
-│               │  └──────────────┴───────────────────────────┘  │
-└───────────────┴─────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│  EduPro Admin      [Breadcrumb]          [🔔] [Avatar ▾ Admin Name]  │
+├────────────┬─────────────────────────────────────────────────────────┤
+│            │                                                          │
+│  SIDEBAR   │  MAIN CONTENT AREA                                      │
+│ (#0c3577)  │                                                          │
+│            │                                                          │
+│ OVERVIEW   │                                                          │
+│  Dashboard │                                                          │
+│  Analytics │                                                          │
+│  Reports⊘  │                                                          │
+│  Notifs⊘   │                                                          │
+│            │                                                          │
+│ ACADEMIC   │                                                          │
+│  Design ←  │                                                          │
+│  Paths⊘    │                                                          │
+│  Assessmt  │                                                          │
+│  ...       │                                                          │
+│            │                                                          │
+│ FACULTY    │                                                          │
+│ STUDENT    │                                                          │
+│ ASSESSMENT │                                                          │
+│ OPERATIONS │                                                          │
+│ INSIGHTS   │                                                          │
+│            │                                                          │
+└────────────┴─────────────────────────────────────────────────────────┘
+  ⊘ = disabled / planned, not yet implemented
 ```
 
-#### Dashboard HTML Shell (`dashboard.html`)
+#### Sidebar Structure
+
+- **CSS class:** `<nav class="sidebar">` — background `#0c3577` (dark navy), width 260px
+- **Scrollable:** `.sidebar__nav` has `overflow-y: auto`
+- **Group labels:** `.sidebar__group-label` — small all-caps muted white text, non-interactive
+- **Disabled items:** `.nav-link.disabled` — 38% opacity, pointer-events none
+- **Compact spacing:** nav-link padding `0.25rem 0.75rem`, font-size `0.8125rem`, no margin-bottom
+
+| # | Group | Implemented items | Planned (disabled) |
+|---|---|---|---|
+| 1 | Overview | Dashboard, Analytics | Reports, Notifications |
+| 2 | Academic Management | Design Courses, Assessment Designer | Learning Paths, Question Bank, Assignments, Certificates |
+| 3 | Faculty Management | Teachers | Departments, Workload Management, Attendance, Performance Reviews |
+| 4 | Student Management | Students | Enrollments, Attendance, Progress Tracking, Achievements |
+| 5 | Assessment & Evaluation | — | Question Bank, Exam Scheduling, Submissions, Results, Grading |
+| 6 | Operations | Approvals | Requests, Leave Management, Announcements, Events |
+| 7 | Insights & Reporting | Analytics | Performance Dashboard, Student Success Metrics, Faculty Analytics, Custom Reports |
+
+#### Topbar Structure
+
+- Right side: bell icon → user avatar dropdown
+- **User dropdown** (`topbar-user-btn`) contains:
+  1. **Super Admin** section header (`dropdown-header`)
+  2. Users, Roles & Permissions, Organizations, System Settings, Audit Logs — all disabled (planned)
+  3. `<hr class="dropdown-divider">`
+  4. Sign out → `/auth/logout`
+- No separate Administration button exists; all admin controls live inside the user dropdown
+
+#### Dashboard HTML Shell (reference pattern)
 ```html
-<div class="d-flex" id="adminWrapper">
+<div class="d-flex" id="adminWrapper" style="height:100vh;">
 
   <!-- Sidebar -->
-  <nav id="sidebar" class="d-flex flex-column p-3 bg-white border-end"
-       style="width:240px; min-height:100vh;">
-    <div class="fw-bold fs-5 mb-4 text-primary">
-      <i class="bi bi-mortarboard-fill me-2"></i>EduPro Admin
-    </div>
-    <ul class="nav nav-pills flex-column gap-1">
-      <li class="nav-item">
-        <a class="nav-link" href="/admin/dashboard">
-          <i class="bi bi-speedometer2 me-2"></i>Dashboard
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link active" href="/admin/courses/design">
-          <i class="bi bi-diagram-3 me-2"></i>Design Courses
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" href="/admin/users">
-          <i class="bi bi-people me-2"></i>Users
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" href="/admin/approvals">
-          <i class="bi bi-check2-circle me-2"></i>Approvals
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" href="/admin/analytics">
-          <i class="bi bi-bar-chart me-2"></i>Analytics
-        </a>
-      </li>
-      <li class="nav-item mt-auto">
-        <a class="nav-link" href="/admin/settings">
-          <i class="bi bi-gear me-2"></i>Settings
-        </a>
-      </li>
+  <nav class="sidebar" aria-label="Admin navigation">
+    <a href="/admin/dashboard" class="sidebar__brand">
+      <i class="bi bi-mortarboard-fill"></i>
+      <span>EduPro Admin</span>
+    </a>
+    <ul class="sidebar__nav">
+      <li class="sidebar__group-label">Overview</li>
+      <li><a class="nav-link active" href="/admin/dashboard"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
+      <li><a class="nav-link" href="/admin/analytics"><i class="bi bi-bar-chart-line"></i><span>Analytics</span></a></li>
+      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span></a></li>
+      <!-- ... remaining groups ... -->
+    </ul>
+    <ul class="sidebar__nav-bottom">
+      <li><a class="nav-link" href="/auth/logout" onclick="sessionStorage.clear()"><i class="bi bi-box-arrow-right"></i><span>Sign out</span></a></li>
     </ul>
   </nav>
 
   <!-- Main -->
-  <div class="flex-grow-1 d-flex flex-column">
+  <div class="flex-grow-1 d-flex flex-column overflow-hidden">
     <!-- Topbar -->
-    <header class="navbar navbar-light bg-white border-bottom px-4 py-2">
-      <nav aria-label="breadcrumb">
-        <ol class="breadcrumb mb-0">
-          <li class="breadcrumb-item"><a href="/admin/dashboard">Home</a></li>
-          <li class="breadcrumb-item active">Design Courses</li>
-        </ol>
-      </nav>
-      <div class="ms-auto d-flex align-items-center gap-3">
-        <i class="bi bi-bell fs-5"></i>
+    <header class="topbar">
+      <nav aria-label="breadcrumb">...</nav>
+      <div class="topbar__actions">
+        <button class="topbar__icon-btn" aria-label="Notifications"><i class="bi bi-bell"></i></button>
         <div class="dropdown">
-          <button class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown">
-            <i class="bi bi-person-circle me-1"></i>Jane Smith
+          <button class="topbar-user-btn dropdown-toggle" data-bs-toggle="dropdown">
+            <span class="topbar-avatar" id="topbarAvatar">A</span>
+            <span id="topbarName">Admin</span>
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item" href="/auth/logout">Sign out</a></li>
+            <li><h6 class="dropdown-header">Super Admin</h6></li>
+            <li><a class="dropdown-item disabled">...</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="/auth/logout" onclick="sessionStorage.clear()">Sign out</a></li>
           </ul>
         </div>
       </div>

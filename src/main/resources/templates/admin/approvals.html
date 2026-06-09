@@ -3,30 +3,26 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>EducationPro — Admin Dashboard</title>
+  <title>EduPro — Exam Approvals</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
-  <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"/>
   <link rel="stylesheet" th:href="@{/css/main.css}"/>
 </head>
 <body class="d-flex" style="min-height:100vh; background:var(--bg-app); overflow:hidden;">
 
   <!-- ── SIDEBAR ──────────────────────────────────────────────────────────── -->
   <nav class="sidebar" aria-label="Admin navigation">
-
     <a href="/admin/dashboard" class="sidebar__brand">
       <i class="bi bi-mortarboard-fill"></i>
       <span>EduPro Admin</span>
     </a>
-
     <ul class="sidebar__nav">
 
       <li class="sidebar__group-label">Overview</li>
-      <li><a class="nav-link active" href="/admin/dashboard" aria-current="page"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
+      <li><a class="nav-link" href="/admin/dashboard"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
       <li><a class="nav-link" href="/admin/analytics"><i class="bi bi-bar-chart-line"></i><span>Analytics</span></a></li>
       <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span></a></li>
       <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-bell"></i><span>Notifications</span></a></li>
@@ -61,7 +57,12 @@
       <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-pencil-square"></i><span>Grading</span></a></li>
 
       <li class="sidebar__group-label">Operations</li>
-      <li><a class="nav-link" href="/admin/approvals"><i class="bi bi-check2-circle"></i><span>Approvals</span></a></li>
+      <li>
+        <a class="nav-link active" href="/admin/approvals" aria-current="page">
+          <i class="bi bi-check2-circle"></i><span>Approvals</span>
+          <span class="badge bg-warning text-dark ms-auto rounded-pill" id="sidebarBadge" style="display:none; font-size:0.7rem;"></span>
+        </a>
+      </li>
       <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-hand-index-thumb"></i><span>Requests</span></a></li>
       <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-calendar3"></i><span>Leave Management</span></a></li>
       <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-megaphone"></i><span>Announcements</span></a></li>
@@ -76,7 +77,6 @@
 
 
     </ul>
-
     <ul class="sidebar__nav-bottom">
       <li>
         <a class="nav-link" href="/auth/logout" onclick="sessionStorage.clear()">
@@ -94,17 +94,17 @@
     <header class="topbar">
       <nav aria-label="breadcrumb">
         <ol class="breadcrumb mb-0">
-          <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+          <li class="breadcrumb-item"><a href="/admin/dashboard">Home</a></li>
+          <li class="breadcrumb-item active" aria-current="page">Approvals</li>
         </ol>
       </nav>
-
       <div class="topbar__actions">
         <button class="topbar__icon-btn" aria-label="Notifications">
           <i class="bi bi-bell"></i>
         </button>
         <div class="dropdown">
           <button class="topbar-user-btn dropdown-toggle" data-bs-toggle="dropdown"
-                  aria-expanded="false" id="topbarUserBtn">
+                  aria-expanded="false">
             <span class="topbar-avatar" id="topbarAvatar">A</span>
             <span id="topbarName">Admin</span>
           </button>
@@ -129,154 +129,186 @@
     <!-- ── PAGE CONTENT ──────────────────────────────────────────────────── -->
     <main class="flex-grow-1 overflow-auto p-4">
 
-      <!-- Page header -->
-      <div class="page-header">
+      <div class="page-header mb-4">
         <div>
-          <div class="page-header__greeting" id="greetingText">Good morning</div>
-          <p class="page-header__sub mb-0">
-            Here's what's happening on your platform today.
-          </p>
+          <div class="page-header__greeting">Exam Approvals</div>
+          <p class="page-header__sub mb-0">Review and approve exams submitted by teachers.</p>
         </div>
-        <span class="page-header__date">
-          <i class="bi bi-calendar3 me-1"></i>
-          <span id="todayDate"></span>
-        </span>
+        <button class="btn btn-outline-secondary btn-sm" id="btnRefresh" title="Refresh">
+          <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+        </button>
       </div>
 
-      <!-- ── Stat cards ── -->
+      <!-- Stats row -->
       <div class="row g-3 mb-4">
-
-        <div class="col-xl-3 col-md-6">
-          <div class="stat-card stat-card--blue">
-            <div class="d-flex align-items-center gap-3">
-              <div class="stat-card__icon stat-card__icon--blue">
-                <i class="bi bi-people-fill"></i>
-              </div>
-              <div class="flex-grow-1 min-width-0">
-                <div class="stat-card__value">—</div>
-                <div class="stat-card__label">Total Users</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6">
-          <div class="stat-card stat-card--green">
-            <div class="d-flex align-items-center gap-3">
-              <div class="stat-card__icon stat-card__icon--green">
-                <i class="bi bi-journal-richtext"></i>
-              </div>
-              <div class="flex-grow-1 min-width-0">
-                <div class="stat-card__value">—</div>
-                <div class="stat-card__label">Published Courses</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6">
+        <div class="col-md-4">
           <div class="stat-card stat-card--amber">
             <div class="d-flex align-items-center gap-3">
               <div class="stat-card__icon stat-card__icon--amber">
                 <i class="bi bi-hourglass-split"></i>
               </div>
-              <div class="flex-grow-1 min-width-0">
-                <div class="stat-card__value">—</div>
-                <div class="stat-card__label">Approvals Pending</div>
+              <div>
+                <div class="stat-card__value" id="pendingCount">—</div>
+                <div class="stat-card__label">Pending Approval</div>
               </div>
             </div>
           </div>
         </div>
-
-        <div class="col-xl-3 col-md-6">
-          <div class="stat-card stat-card--purple">
-            <div class="d-flex align-items-center gap-3">
-              <div class="stat-card__icon stat-card__icon--purple">
-                <i class="bi bi-patch-question-fill"></i>
-              </div>
-              <div class="flex-grow-1 min-width-0">
-                <div class="stat-card__value">—</div>
-                <div class="stat-card__label">Questions in Bank</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
       </div>
 
-      <!-- ── Quick actions ── -->
-      <div class="mb-3">
-        <p class="label-sm mb-3">Quick Actions</p>
-        <div class="row g-3">
-
-          <div class="col-md-4">
-            <a href="/admin/courses/design" class="quick-action quick-action--blue d-block">
-              <div class="stat-card__icon stat-card__icon--blue flex-shrink-0">
-                <i class="bi bi-diagram-3-fill"></i>
-              </div>
-              <div>
-                <div class="quick-action__label">Course Designer</div>
-                <div class="quick-action__link" style="color:#0d6efd;">
-                  Open Designer <i class="bi bi-arrow-right"></i>
-                </div>
-              </div>
-            </a>
+      <!-- Pending exams list -->
+      <div id="approvalsList">
+        <div class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading…</span>
           </div>
-
-          <div class="col-md-4">
-            <a href="/admin/exams/builder" class="quick-action quick-action--green d-block">
-              <div class="stat-card__icon stat-card__icon--green flex-shrink-0">
-                <i class="bi bi-journal-check"></i>
-              </div>
-              <div>
-                <div class="quick-action__label">Assessment Designer</div>
-                <div class="quick-action__link" style="color:#198754;">
-                  Build Exams <i class="bi bi-arrow-right"></i>
-                </div>
-              </div>
-            </a>
-          </div>
-
-          <div class="col-md-4">
-            <a href="/admin/approvals" class="quick-action quick-action--amber d-block">
-              <div class="stat-card__icon stat-card__icon--amber flex-shrink-0">
-                <i class="bi bi-check2-circle"></i>
-              </div>
-              <div>
-                <div class="quick-action__label">Pending Approvals</div>
-                <div class="quick-action__link" style="color:#d97706;">
-                  Review Submissions <i class="bi bi-arrow-right"></i>
-                </div>
-              </div>
-            </a>
-          </div>
-
         </div>
       </div>
+
     </main>
   </div>
 
+  <!-- Toast container -->
+  <div id="toastContainer" class="position-fixed bottom-0 end-0 p-3"
+       style="z-index:9999;" aria-live="polite"></div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    // ── Auth ────────────────────────────────────────────────────────────────
+    function getToken() {
+      return sessionStorage.getItem('edu_token') || localStorage.getItem('ep_token') || '';
+    }
+    function authHeaders(extra) {
+      var h = Object.assign({}, extra || {});
+      var t = getToken();
+      if (t) h['Authorization'] = 'Bearer ' + t;
+      return h;
+    }
+
+    // ── Toast ────────────────────────────────────────────────────────────────
+    function showToast(msg, type) {
+      type = type || 'success';
+      var el = document.createElement('div');
+      el.className = 'toast align-items-center text-white bg-' + type + ' border-0 show';
+      el.setAttribute('role', 'alert');
+      el.innerHTML = '<div class="d-flex"><div class="toast-body fw-semibold">' + escHtml(msg) +
+        '</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>';
+      document.getElementById('toastContainer').appendChild(el);
+      setTimeout(function() { el.remove(); }, 4000);
+    }
+    function escHtml(s) {
+      return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // ── Topbar ───────────────────────────────────────────────────────────────
     (function() {
       var name = sessionStorage.getItem('edu_name') || '';
-      var nameEl   = document.getElementById('topbarName');
-      var avatarEl = document.getElementById('topbarAvatar');
       if (name) {
-        if (nameEl)   nameEl.textContent   = name;
-        if (avatarEl) avatarEl.textContent = name.charAt(0).toUpperCase();
+        var el = document.getElementById('topbarName');
+        var av = document.getElementById('topbarAvatar');
+        if (el) el.textContent = name;
+        if (av) av.textContent = name.charAt(0).toUpperCase();
+      }
+    })();
+
+    // ── Load pending exams ────────────────────────────────────────────────────
+    var pendingExams = [];
+
+    async function loadPending() {
+      var res = await fetch('/api/admin/exams/pending-approval', { headers: authHeaders() });
+      if (!res.ok) {
+        document.getElementById('approvalsList').innerHTML =
+          '<div class="alert alert-danger">Failed to load pending approvals.</div>';
+        return;
+      }
+      pendingExams = await res.json();
+      render();
+    }
+
+    function render() {
+      var count = pendingExams.length;
+      document.getElementById('pendingCount').textContent = count;
+
+      var badge = document.getElementById('sidebarBadge');
+      if (count > 0) {
+        badge.textContent = count;
+        badge.style.display = '';
+      } else {
+        badge.style.display = 'none';
       }
 
-      var hour     = new Date().getHours();
-      var greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-      var first    = name ? ', ' + name.split(' ')[0] : '';
-      var greetEl  = document.getElementById('greetingText');
-      if (greetEl) greetEl.textContent = greeting + first;
+      var container = document.getElementById('approvalsList');
+      if (!count) {
+        container.innerHTML =
+          '<div class="empty-state">' +
+            '<div class="empty-state__icon" style="background:#dcfce7;">' +
+              '<i class="bi bi-check2-all" style="font-size:1.75rem;color:#16a34a;"></i>' +
+            '</div>' +
+            '<div class="empty-state__title">All caught up!</div>' +
+            '<p class="empty-state__sub">No exams are waiting for approval.</p>' +
+          '</div>';
+        return;
+      }
 
-      document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-US', {
-        weekday: 'short', year: 'numeric', month: 'short', day: 'numeric'
+      container.innerHTML = pendingExams.map(function(e) {
+        return '<div class="approval-card" data-id="' + e.id + '">' +
+          '<div class="flex-grow-1">' +
+            '<div class="d-flex align-items-center gap-2 mb-1">' +
+              '<span class="badge bg-warning text-dark">Pending Approval</span>' +
+            '</div>' +
+            '<div class="approval-card__name">' + escHtml(e.name) + '</div>' +
+            '<div class="approval-card__meta">' +
+              '<span><i class="bi bi-person"></i>Submitted by <strong>' + escHtml(e.createdByName || 'Unknown') + '</strong></span>' +
+              '<span><i class="bi bi-patch-question"></i>' + e.questionCount + ' questions</span>' +
+              '<span><i class="bi bi-award"></i>' + e.totalMarks + ' marks</span>' +
+              '<span><i class="bi bi-clock"></i>' + e.timeLimitMinutes + ' min</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="d-flex gap-2 flex-shrink-0">' +
+            '<a href="/admin/exams/builder?examId=' + e.id + '" class="btn btn-outline-secondary btn-sm">' +
+              '<i class="bi bi-eye me-1"></i>Preview' +
+            '</a>' +
+            '<button class="btn btn-success btn-sm approve-btn" data-id="' + e.id + '" data-name="' + escHtml(e.name) + '">' +
+              '<i class="bi bi-check-lg me-1"></i>Approve' +
+            '</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    // ── Approve ───────────────────────────────────────────────────────────────
+    document.getElementById('approvalsList').addEventListener('click', async function(e) {
+      var btn = e.target.closest('.approve-btn');
+      if (!btn) return;
+
+      var id   = Number(btn.dataset.id);
+      var name = btn.dataset.name;
+      if (!confirm('Approve "' + name + '"? This will make it available to students.')) return;
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Approving…';
+
+      var res = await fetch('/api/admin/exams/' + id + '/approve', {
+        method: 'POST',
+        headers: authHeaders()
       });
-    })();
+
+      if (res.ok) {
+        pendingExams = pendingExams.filter(function(x) { return x.id !== id; });
+        render();
+        showToast('"' + name + '" approved successfully.', 'success');
+      } else {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Approve';
+        showToast('Approval failed. Please try again.', 'danger');
+      }
+    });
+
+    // ── Refresh ───────────────────────────────────────────────────────────────
+    document.getElementById('btnRefresh').addEventListener('click', loadPending);
+
+    // ── Boot ─────────────────────────────────────────────────────────────────
+    loadPending();
   </script>
 </body>
 </html>

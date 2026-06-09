@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>EduPro — Register Student</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"/>
+  <link rel="stylesheet" th:href="@{/css/main.css}"/>
+  <style>
+    :root { --accent: #6f42c1; --accent-light: #a78bfa; --accent-bg: #f3eeff; }
+    body { background: #f1f5f9; font-family: 'Inter', sans-serif; }
+
+    /* ── Layout ───────────────────────────────────────── */
+    .reg-wrap { display: flex; min-height: 100vh; }
+
+    /* ── Stepper sidebar ──────────────────────────────── */
+    .stepper-aside {
+      width: 280px; flex-shrink: 0;
+      background: linear-gradient(160deg, #4c1d95 0%, #6f42c1 60%, #7c3aed 100%);
+      padding: 2rem 1.5rem; display: flex; flex-direction: column;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    }
+    .stepper-brand { color: #fff; font-size: 1.1rem; font-weight: 700; margin-bottom: 2rem; display: flex; align-items: center; gap: .5rem; }
+    .stepper-brand i { font-size: 1.4rem; }
+    .step-item { display: flex; align-items: flex-start; gap: .875rem; padding: .6rem .75rem; border-radius: 10px; cursor: pointer; transition: background .2s; margin-bottom: .25rem; }
+    .step-item:hover { background: rgba(255,255,255,.08); }
+    .step-item.active { background: rgba(255,255,255,.18); }
+    .step-item.done .step-num { background: #22c55e; border-color: #22c55e; color: #fff; }
+    .step-item.done .step-num::after { content: '\F26B'; font-family: 'bootstrap-icons'; }
+    .step-item.done .step-num span { display: none; }
+    .step-num {
+      width: 30px; height: 30px; border-radius: 50%; border: 2px solid rgba(255,255,255,.4);
+      background: rgba(255,255,255,.1); color: rgba(255,255,255,.7);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .75rem; font-weight: 700; flex-shrink: 0; transition: all .3s;
+    }
+    .step-item.active .step-num { border-color: #fff; background: rgba(255,255,255,.3); color: #fff; }
+    .step-label { color: rgba(255,255,255,.7); font-size: .8125rem; line-height: 1.3; padding-top: .25rem; }
+    .step-label b { display: block; color: #fff; font-size: .875rem; margin-bottom: .1rem; }
+    .step-item.active .step-label b { color: #fff; }
+
+    /* ── Progress bar ─────────────────────────────────── */
+    .progress-wrap { margin-top: auto; padding-top: 1.5rem; }
+    .progress-label { color: rgba(255,255,255,.7); font-size: .75rem; margin-bottom: .5rem; display: flex; justify-content: space-between; }
+    .progress-bar-outer { background: rgba(255,255,255,.2); border-radius: 4px; height: 6px; }
+    .progress-bar-inner { background: #a78bfa; border-radius: 4px; height: 6px; transition: width .4s; }
+
+    /* ── Main content ─────────────────────────────────── */
+    .reg-main { flex-grow: 1; overflow-y: auto; }
+    .reg-topbar { background: #fff; border-bottom: 1px solid #e2e8f0; padding: .875rem 2rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+    .reg-topbar-title { font-weight: 700; color: #1e293b; }
+    .reg-topbar-back { color: #64748b; font-size: .875rem; text-decoration: none; display: flex; align-items: center; gap: .375rem; }
+    .reg-topbar-back:hover { color: var(--accent); }
+
+    /* ── Step panel ───────────────────────────────────── */
+    .step-panel { display: none; animation: fadeSlide .3s ease; }
+    .step-panel.active { display: block; }
+    @keyframes fadeSlide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .step-header { margin-bottom: 1.75rem; }
+    .step-header h2 { font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: .25rem; }
+    .step-header p { color: #64748b; font-size: .875rem; margin: 0; }
+    .step-icon { width: 48px; height: 48px; border-radius: 12px; background: var(--accent-bg); display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; }
+    .step-icon i { font-size: 1.375rem; color: var(--accent); }
+
+    /* ── Form elements ────────────────────────────────── */
+    .section-card { background: #fff; border-radius: 16px; border: 1px solid #e2e8f0; padding: 1.5rem; margin-bottom: 1.25rem; }
+    .section-card-title { font-size: .8125rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 1.125rem; display: flex; align-items: center; gap: .5rem; }
+    .section-card-title::after { content: ''; flex: 1; height: 1px; background: #f1f5f9; }
+    .form-label { font-size: .8125rem; font-weight: 600; color: #374151; margin-bottom: .375rem; }
+    .form-control, .form-select { font-size: .875rem; border-color: #e2e8f0; border-radius: 8px; padding: .5rem .75rem; }
+    .form-control:focus, .form-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(111,66,193,.12); }
+    .form-text { font-size: .75rem; color: #94a3b8; margin-top: .25rem; }
+    .required-star { color: #ef4444; }
+
+    /* ── Photo upload ─────────────────────────────────── */
+    .photo-upload-zone {
+      width: 130px; height: 130px; border-radius: 50%; border: 3px dashed #c4b5fd;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; transition: all .2s; background: var(--accent-bg); position: relative; overflow: hidden;
+    }
+    .photo-upload-zone:hover { border-color: var(--accent); background: #ede9fe; }
+    .photo-upload-zone img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .photo-upload-zone i { font-size: 1.75rem; color: #a78bfa; }
+    .photo-upload-zone span { font-size: .6875rem; color: #7c3aed; margin-top: .25rem; font-weight: 600; }
+
+    /* ── File drop zone ───────────────────────────────── */
+    .doc-zone {
+      border: 2px dashed #e2e8f0; border-radius: 10px; padding: 1.25rem;
+      text-align: center; cursor: pointer; transition: all .2s; background: #fafafa;
+    }
+    .doc-zone:hover, .doc-zone.has-file { border-color: var(--accent); background: var(--accent-bg); }
+    .doc-zone i { font-size: 1.5rem; color: #94a3b8; margin-bottom: .375rem; }
+    .doc-zone.has-file i { color: var(--accent); }
+    .doc-zone-label { font-size: .75rem; color: #64748b; }
+    .doc-zone.has-file .doc-zone-label { color: var(--accent); font-weight: 600; }
+    .doc-zone input[type=file] { display: none; }
+
+    /* ── Password ─────────────────────────────────────── */
+    .pw-wrap { position: relative; }
+    .pw-toggle { position: absolute; right: .75rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; cursor: pointer; }
+    .pw-strength { height: 4px; border-radius: 2px; margin-top: .375rem; transition: all .3s; background: #e2e8f0; }
+    .pw-strength.weak   { background: linear-gradient(90deg,#ef4444 33%,#e2e8f0 33%); }
+    .pw-strength.fair   { background: linear-gradient(90deg,#f97316 66%,#e2e8f0 66%); }
+    .pw-strength.strong { background: #22c55e; }
+
+    /* ── Info banners ─────────────────────────────────── */
+    .info-banner { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 1rem 1.25rem; display: flex; gap: .75rem; align-items: flex-start; font-size: .8125rem; color: #1e40af; }
+    .info-banner i { font-size: 1rem; flex-shrink: 0; margin-top: .1rem; }
+    .warn-banner { background: #fefce8; border: 1px solid #fde68a; border-radius: 10px; padding: 1rem 1.25rem; display: flex; gap: .75rem; align-items: flex-start; font-size: .8125rem; color: #92400e; }
+
+    /* ── Navigation buttons ───────────────────────────── */
+    .step-nav { display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid #e2e8f0; }
+    .btn-next { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: .625rem 1.5rem; font-weight: 600; font-size: .9375rem; transition: background .2s; }
+    .btn-next:hover { background: #5b21b6; color: #fff; }
+    .btn-prev { background: #f1f5f9; color: #475569; border: none; border-radius: 8px; padding: .625rem 1.5rem; font-weight: 600; font-size: .9375rem; transition: background .2s; }
+    .btn-prev:hover { background: #e2e8f0; }
+    .btn-submit { background: linear-gradient(135deg, #6f42c1, #7c3aed); color: #fff; border: none; border-radius: 8px; padding: .625rem 2rem; font-weight: 700; font-size: .9375rem; box-shadow: 0 4px 12px rgba(111,66,193,.3); }
+    .btn-submit:hover { opacity: .9; }
+
+    /* ── Success overlay ──────────────────────────────── */
+    #successOverlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,.5); z-index: 9999; align-items: center; justify-content: center; }
+    #successOverlay.show { display: flex; }
+    .success-card { background: #fff; border-radius: 20px; padding: 3rem 2.5rem; text-align: center; max-width: 440px; width: 90%; box-shadow: 0 25px 60px rgba(0,0,0,.15); }
+    .success-icon { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #22c55e, #16a34a); margin: 0 auto 1.5rem; display: flex; align-items: center; justify-content: center; }
+    .success-icon i { font-size: 2.5rem; color: #fff; }
+  </style>
+</head>
+<body>
+<div class="reg-wrap">
+
+  <!-- ══ Stepper Sidebar ════════════════════════════════════════════════════ -->
+  <aside class="stepper-aside">
+    <div class="stepper-brand"><i class="bi bi-mortarboard-fill"></i> Student Registration</div>
+
+    <div id="stepperList"></div>
+
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span>Progress</span><span id="progressPct">10%</span>
+      </div>
+      <div class="progress-bar-outer">
+        <div class="progress-bar-inner" id="progressBar" style="width:10%;"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══ Main ═══════════════════════════════════════════════════════════════ -->
+  <div class="reg-main">
+    <div class="reg-topbar">
+      <a class="reg-topbar-back" href="/admin/students"><i class="bi bi-arrow-left"></i> Back to Students</a>
+      <div class="reg-topbar-title">Register New Student</div>
+      <div style="font-size:.8125rem; color:#94a3b8;">Step <span id="topStep">1</span> of 10</div>
+    </div>
+
+    <div class="p-4" style="max-width:860px; margin:0 auto;">
+
+      <!-- ── Step 1: Student Information ──────────────────────────────────── -->
+      <div class="step-panel active" id="panel-1">
+        <div class="step-header">
+          <div class="step-icon"><i class="bi bi-person-fill"></i></div>
+          <h2>Student Information</h2>
+          <p>Core identity details for the student record.</p>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-title"><i class="bi bi-camera-fill" style="color:var(--accent);"></i> Profile Photo</div>
+          <div class="d-flex align-items-center gap-4">
+            <label class="photo-upload-zone" for="profilePhoto" aria-label="Upload profile photo">
+              <img id="photoPreview" src="" alt="" style="display:none;"/>
+              <i class="bi bi-camera" id="photoIcon"></i>
+              <span id="photoText">Upload Photo</span>
+              <input type="file" id="profilePhoto" name="profilePhoto" accept="image/*" onchange="previewPhoto(this)"/>
+            </label>
+            <div>
+              <div class="fw-semibold mb-1" style="font-size:.875rem;">Student Photo</div>
+              <div style="font-size:.75rem; color:#64748b; line-height:1.6;">JPG or PNG · Max 5 MB<br>Square crop recommended<br>Displayed on ID card &amp; portal</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-title"><i class="bi bi-file-person"></i> Personal Details</div>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">First Name <span class="required-star">*</span></label>
+              <input type="text" class="form-control" id="firstName" name="firstName" required/>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Middle Name</label>
+              <input type="text" class="form-control" id="middleName" name="middleName"/>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Last Name <span class="required-star">*</span></label>
+              <input type="text" class="form-control" id="lastName" name="lastName" required/>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Preferred / Known As</label>
+              <input type="text" class="form-control" id="preferredName" name="preferredName" placeholder="Nickname or preferred name"/>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Student ID</label>
+              <input type="text" class="form-control" id="studentId" name="studentId" placeholder="e.g. STU-2024-0042"/>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Date of Birth</label>
+              <input type="date" class="form-control" id="dateOfBirth" name="dateOfBirth"/>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Gender</label>
+              <select class="form-select" id="gender" name="gender">
+                <option value="">Select</option>
+                <option>Male</option><option>Female</option><option>Non-binary</option><option>Prefer not to say</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Nationality</label>
+              <input type="text" class="form-control" id="nationality" name="nationality"/>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-nav">
+          <div></div>
+          <button class="btn-next" onclick="goStep(2)">Next: Contact Info <i class="bi bi-arrow-right ms-1"></i></button>
+        </div>
+      </div>
+
+      <!-- ── Step 2: Contact Information ──────────────────────────────────── -->
+      <div class="step-panel" id="panel-2">
+        <div class="step-header">
+          <div class="step-icon"><i class="bi bi-envelope-fill"></i></div>
+          <h2>Contact Information</h2>
+          <p>Student's personal contact and residential details.</p>
+        </div>
+        <div class="section-card">
+          <div class="section-card-title"><i class="bi bi-telephone-fill"></i> Contact Details</div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Student Email <span class="required-star">*</span></label>
+              <input type="email" class="form-control" id="studentEmail" name="studentEmail" required/>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Mobile Number</label>
+              <input type="tel" class="form-control" id="mobileNumber" name="mobileNumber"/>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Address Line 1</label>
+              <input type="text" class="form-control" id="addressLine1" name="addressLine1"/>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Address Line 2</label>
+              <input type="text" class="form-control" id="addressLine2" name="addressLine2"/>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">City</label>
+              <input type="text" class="form-control" id="city" name="city"/>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">State / County</label>
+              <input type="text" class="form-control" id="stateCounty" name="stateCounty"/>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Postcode</label>
+              <input type="text" class="form-control" id="postalCode" name="postalCode"/>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Country</label>
+              <input type="text" class="form-control" id="country" name="country"/>
+            </div>
+          </div>
+        </div>
+        <div class="step-nav">
+          <button class="btn-prev" onclick="goStep(1)"><i class="bi bi-arrow-left me-1"></i> Back</button>
+          <button class="btn-next" onclick="goStep(3)">Next: Parent / Guardian <i class="bi bi-arrow-right ms-1"></i></button>
+        </div>
+      </div>
+
+      <!-- ── Step 3: Parent / Guardian ────────────────────────────────────── -->
+      <div class="step-panel" id="panel-3">
+        <div class="step-header">
+          <div class="step-icon"><i class="bi bi-people-fill"></i></div>
+          <h2>Parent / Guardian Information</h2>
+          <p>Primary guardian details for communication and portal access.</p>
+        </div>
+        <div class="section-card">
+          <div class="section-card-title"><i class="bi bi-person-heart"></i> Guardian Details</div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Guardian Full Name <span class="required-star">*</span></label>
+              <input type="text" class="form-control" id="guardianName" name="guardianName" required/>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Relationship to Student</label>
+              <select class="form-select" id="relationship" name="relationship">
+                <option value="">Select</option>
+                <option>Father</option><option>Mother</option><option>Sibling</option>
+                <option>Grandparent</option><option>Legal Guardian</option><option>Other</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Parent Email</label>
+              <input type="email" class="form-control" id="parentEmail" name="parentEmail"/>
+              <div class="form-text">Used to create parent portal account below.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Parent Mobile</label>
+              <input type="tel" class="form-control" id="parentMobile" name="parentMobile"/>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Alternate Contact</label>
+              <input type="tel" class="form-control" id="alternateContact" name="alternateContact"/>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Emergency Contact</label>
+              <input type="tel" class="form-control" id="emergencyContactNumber" name="emergencyContactNumber"/>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Guardian Occupation</label>
+              <input type="text" class="form-control" id="occupation" name="occupation"/>
+            </div>
+          </div>
+        </div>
+        <div class="step-nav">
+          <button class="btn-prev" onclick="goStep(2)"><i class="bi bi-arrow-left me-1"></i> Back</button>
+          <button class="btn-next" onclick="goStep(4)">Next: Admission Info <i class="bi bi-arrow-right ms-1"></i></button>
+        </div>
+      </div>
+
+      <!-- ── Step 4: Admission Information ────────────────────────────────── -->
+      <div class="step-panel" id="panel-4">
+        <div class="step-header">
+          <div class="step-icon"><i class="bi bi-building-fill"></i></div>
+          <h2>Admission Information</h2>
+          <p>Enrolment, campus, and placement details.</p>
+        </div>
+        <div class="section-card">
+          <div class="section-card-title"><i class="bi bi-door-open"></i> Enrolment Details</div>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Admission Number</label>
+              <input type="text" class="form-control" id="admissionNumber" name="admissionNumber"/>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Admission Date</label>
+              <input type="date" class="form-control" id="admissionDate" name="admissionDate"/>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Academic Year</label>
+              <input type="text" class="form-control" id="academicYear" name="academicYear" placeholder="e.g. 2024–25"/>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Campus / School</label>
+              <input type="text" class="form-control" id="campus" name="campus"/>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Programme / Course</label>
+              <input type="text" class="form-control" id="programCourse" name="programCourse" placeholder="e.g. A-Levels, IGCSE, Year 10…"/>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Grade / Year</label>
+              <input type="text" class="form-control" id="gradeYear" name="gradeYear" placeholder="e.g. 10"/>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Class</label>
+              <input type="text" class="form-control" id="className" name="className" placeholder="e.g. 10A"/>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Section</label>
+              <input type="text" class="form-control" id="section" name="section" placeholder="e.g. Alpha"/>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Student Status</label>
+              <select class="form-select" id="studentStatus" name="studentStatus">
+                <option value="ACTIVE">Active</option>
+                <option value="GRADUATED">Graduated</option>
+                <option value="SUSPENDED">Suspended</option>
+                <option value="WITHDRAWN">Withdrawn</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="step-nav">
+          <button class="btn-prev" onclick="goStep(3)"><i class="bi bi-arrow-left me-1"></i> Back</button>
+          <button class="btn-next" onclick="goStep(5)">Next: Academic Info <i class="bi bi-arrow-right ms-1"></i></button>
+        </div>
+      </div>
+
+      <!-- ── Step 5: Academic Information ─────────────────────────────────── -->
+      <div class="step-panel" id="panel-5">
+        <div class="step-header">
+          <div class="step-icon"><i class="bi bi-journal-text"></i></div>
+          <h2>Academic Information</h2>
+          <p>Prior education, subjects, and learning preferences.</p>
+        </div>
+        <div class="section-card">
+          <div class="section-card-title"><i class="bi bi-book"></i> Academic Background</div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Previous School / Institution</label>
+              <input type="text" class="form-control" id="previousSchool" name="previousSchool"/>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Previous Qualification</label>
+              <input type="text" class="form-control" id="previousQualification" name="previousQualification"/>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Medium of Instruction</label>
+              <select class="form-select" id="mediumOfInstruction" name="mediumOfInstruction">
+                <option value="">Select</option>
+                <option>English</option><option>Bahasa Malaysia</option><option>Mandarin</option>
+                <option>Tamil</option><option>Other</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Enrolment Type</label>
+              <select class="form-select" id="enrollmentType" name="enrollmentType">
+                <option value="FULL_TIME">Full-Time</option>
+                <option value="PART_TIME">Part-Time</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Subjects Selected</label>
+              <textarea class="form-control" id="subjectsSelected" name="subjectsSelected" rows="2" placeholder="e.g. Mathematics, Physics, Chemistry, English…"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="step-nav">
+          <button class="btn-prev" onclick="goStep(4)"><i class="bi bi-arrow-left me-1"></i> Back</button>
+          <button class="btn-next" onclick="goStep(6)">Next: Login &amp; Portal Access <i class="bi bi-arrow-right ms-1"></i></button>
+        </div>
+      </div>
+
+      <!-- ── Step 6: Login & Portal Access ─────────────────────────────────── -->
+      <div class="step-panel" id="panel-6">
+        <div class="step-header">
+          <div class="step-icon"><i class="bi bi-shield-lock-fill"></i></div>
+          <h2>Login &amp; Portal Access</h2>
+          <p>Set up student and parent portal credentials.</p>
+        </div>
+
+        <div class="info-banner mb-3">
+          <i class="bi bi-info-circle-fill"></i>
+          <div>Credentials are encrypted and stored securely. Leave password blank to disable portal access for that account.</div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-title"><i class="bi bi-mortarboard"></i> Student Portal</div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Login Email</label>
+              <input type="email" class="form-control" id="loginEmail" name="loginEmail" placeholder="Defaults to student email if blank"/>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Password</label>
+              <div class="pw-wrap">
+                <input type="password" class="form-control" id="loginPassword" name="loginPassword" placeholder="Min 8 characters" oninput="checkPw('loginPassword','pwBar1','pwTxt1')"/>
+                <button type="button" class="pw-toggle" onclick="togglePw('loginPassword',this)"><i class="bi bi-eye"></i></button>
+              </div>
+              <div class="pw-strength" id="pwBar1"></div>
+              <div class="form-text" id="pwTxt1"></div>
+            </div>
+            <div class="col-12">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="studentPortalAccess" name="studentPortalAccess" checked/>
+                <label class="form-check-label" for="studentPortalAccess" style="font-size:.875rem;">Enable student portal access immediately on registration</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-title"><i class="bi bi-people-fill"></i> Parent Portal</div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Parent Login Email</label>
+              <input type="email" class="form-control" id="parentLoginEmail" placeholder="Must match parent email in Step 3" readonly
+                onfocus="this.value=document.getElementById('parentEmail').value"/>
+              <div class="form-text">Auto-filled from Step 3 parent email.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Parent Password</label>
+              <div class="pw-wrap">
+                <input type="password" class="form-control" id="parentPassword" name="parentPassword" placeholder="Leave blank to skip" oninput="checkPw('parentPassword','pwBar2','pwTxt2')"/>
+                <button type="button" class="pw-toggle" onclick="togglePw('parentPassword',this)"><i class="bi bi-eye"></i></button>
+              </div>
+              <div class="pw-strength" id="pwBar2"></div>
+              <div class="form-text" id="pwTxt2"></div>
+            </div>
+            <div class="col-12">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="parentPortalAccess" name="parentPortalAccess" checked/>
+                <label class="form-check-label" for="parentPortalAccess" style="font-size:.875rem;">Enable parent portal access on registration</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-nav">
+          <button class="btn-prev" onclick="goStep(5)"><i class="bi bi-arrow-left me-1"></i> Back</button>
+          <button class="btn-next" onclick="goStep(7)">Next: Medical Info <i class="bi bi-arrow-right ms-1"></i></button>
+        </div>
+      </div>
+
+      <!-- ── Step 7: Medical Information ───────────────────────────────────── -->
+      <div class="step-panel" id="panel-7">
+        <div class="step-header">
+          <div class="step-icon"><i class="bi bi-heart-pulse-fill"></i></div>
+          <h2>Medical Information</h2>
+          <p>Health details for welfare and emergency response.</p>
+        </div>
+        <div class="warn-banner mb-3">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <div>Medical information is confidential and accessed only by authorised welfare staff.</div>
+        </div>
+        <div class="section-card">
+          <div class="section-card-title"><i class="bi bi-hospital"></i> Health Details</div>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Blood Group</label>
+              <select class="form-select" id="bloodGroup" name="bloodGroup">
+                <option value="">Unknown</option>
+                <option>A+</option><option>A−</option><option>B+</option><option>B−</option>
+                <option>AB+</option><option>AB−</option><option>O+</option><option>O−</option>
+              </select>
+            </div>
+            <div class="col-md-8">
+              <label class="form-label">Known Allergies</label>
+              <input type="text" class="form-control" id="allergies" name="allergies" placeholder="e.g. Peanuts, Penicillin…"/>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Medical Conditions</label>
+              <textarea class="form-control" id="medicalConditions" name="medicalConditions" rows="2" placeholder="Asthma, diabetes, epilepsy, etc."></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Emergency Medical Notes</label>
+              <textarea class="form-control" id="emergencyMedicalNotes" name="emergencyMedicalNotes" rows="2" placeholder="Instructions for medical emergencies…"></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Family Doctor / Hospital Contact</label>
+              <input type="text" class="form-control" id="doctorContact" name="doctorContact"/>
+            </div>
+          </div>
+        </div>
+        <div class="step-nav">
+          <button class="btn-prev" onclick="goStep(6)"><i class="bi bi-arrow-left me-1"></i> Back</button>
+          <button class="btn-next" onclick="goStep(8)">Next: Fee &amp; Financial <i class="bi bi-arrow-right ms-1"></i></button>
+        </div>
+      </div>
+
+      <!-- ── Step 8: Fee & Financial Information ───────────────────────────── -->
+      <div class="step-panel" id="panel-8">
+        <div class="step-header">
+          <div class="step-icon"><i class="bi bi-cash-coin"></i></div>
+          <h2>Fee &amp; Financial Information</h2>
+          <p>Fee category, scholarships, and sponsorship details.</p>
+        </div>
+        <div class="section-card">
+          <div class="section-card-title"><i class="bi bi-receipt"></i> Financial Details</div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Fee Category</label>
+              <select class="form-select" id="feeCategory" name="feeCategory">
+                <option value="">Select</option>
+                <option>Standard</option><option>Subsidised</option><option>International</option>
+                <option>Staff Concession</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Scholarship Status</label>
+              <select class="form-select" id="scholarshipStatus" name="scholarshipStatus">
+                <option value="">None</option>
+                <option>Academic Merit</option><option>Sports</option><option>Financial Aid</option><option>Government</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Discount / Waiver</label>
+              <input type="text" class="form-control" id="discountWaiver" name="discountWaiver" placeholder="e.g. 20%, Sibling discount…"/>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Sponsor / Organisation</label>
+              <input type="text" class="form-control" id="sponsorInfo" name="sponsorInfo" placeholder="Company or government body"/>
+            </div>
+          </div>
+        </div>
+        <div class="step-nav">
+          <button class="btn-prev" onclick="goStep(7)"><i class="bi bi-arrow-left me-1"></i> Back</button>
+          <button class="btn-next" onclick="goStep(9)">Next: Documents <i class="bi bi-arrow-right ms-1"></i></button>
+        </div>
+      </div>
+
+      <!-- ── Step 9: Documents ─────────────────────────────────────────────── -->
+      <div class="step-panel" id="panel-9">
+        <div class="step-header">
+          <div class="step-icon"><i class="bi bi-folder-fill"></i></div>
+          <h2>Documents</h2>
+          <p>Upload supporting documents for verification and records.</p>
+        </div>
+        <div class="section-card">
+          <div class="section-card-title"><i class="bi bi-paperclip"></i> Uploaded Files</div>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label" style="font-size:.8125rem; font-weight:600;">Birth Certificate</label>
+              <label class="doc-zone" id="zBirth" for="docBirth">
+                <i class="bi bi-file-earmark-text"></i>
+                <div class="doc-zone-label">Click to upload</div>
+                <input type="file" id="docBirth" name="docBirth" onchange="markDoc('zBirth',this)"/>
+              </label>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" style="font-size:.8125rem; font-weight:600;">Passport / National ID</label>
+              <label class="doc-zone" id="zPassport" for="docPassport">
+                <i class="bi bi-credit-card"></i>
+                <div class="doc-zone-label">Click to upload</div>
+                <input type="file" id="docPassport" name="docPassport" onchange="markDoc('zPassport',this)"/>
+              </label>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" style="font-size:.8125rem; font-weight:600;">Academic Records</label>
+              <label class="doc-zone" id="zAcademic" for="docAcademic">
+                <i class="bi bi-journal-bookmark"></i>
+                <div class="doc-zone-label">Click to upload</div>
+                <input type="file" id="docAcademic" name="docAcademic" onchange="markDoc('zAcademic',this)"/>
+              </label>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" style="font-size:.8125rem; font-weight:600;">Address Proof</label>
+              <label class="doc-zone" id="zAddress" for="docAddress">
+                <i class="bi bi-house"></i>
+                <div class="doc-zone-label">Click to upload</div>
+                <input type="file" id="docAddress" name="docAddress" onchange="markDoc('zAddress',this)"/>
+              </label>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" style="font-size:.8125rem; font-weight:600;">Passport-size Photo</label>
+              <label class="doc-zone" id="zPhoto" for="docPhoto">
+                <i class="bi bi-person-square"></i>
+                <div class="doc-zone-label">Click to upload</div>
+                <input type="file" id="docPhoto" name="docPhoto" accept="image/*" onchange="markDoc('zPhoto',this)"/>
+              </label>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" style="font-size:.8125rem; font-weight:600;">Guardian ID Proof</label>
+              <label class="doc-zone" id="zGuardian" for="docGuardian">
+                <i class="bi bi-people"></i>
+                <div class="doc-zone-label">Click to upload</div>
+                <input type="file" id="docGuardian" name="docGuardian" onchange="markDoc('zGuardian',this)"/>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="step-nav">
+          <button class="btn-prev" onclick="goStep(8)"><i class="bi bi-arrow-left me-1"></i> Back</button>
+          <button class="btn-next" onclick="goStep(10)">Next: Review &amp; Submit <i class="bi bi-arrow-right ms-1"></i></button>
+        </div>
+      </div>
+
+      <!-- ── Step 10: Audit & Review ─────────────────────────────────────── -->
+      <div class="step-panel" id="panel-10">
+        <div class="step-header">
+          <div class="step-icon"><i class="bi bi-check-circle-fill"></i></div>
+          <h2>Review &amp; Submit</h2>
+          <p>Confirm all details before creating the student record.</p>
+        </div>
+
+        <div class="section-card" id="reviewCard">
+          <div class="section-card-title"><i class="bi bi-eye"></i> Summary</div>
+          <div id="reviewContent" class="row g-2" style="font-size:.875rem; color:#374151;"></div>
+        </div>
+
+        <div class="info-banner mb-3">
+          <i class="bi bi-shield-check-fill"></i>
+          <div>Submitting this form will create the student record and (where passwords were provided) activate portal accounts for the student and parent.</div>
+        </div>
+
+        <div class="step-nav">
+          <button class="btn-prev" onclick="goStep(9)"><i class="bi bi-arrow-left me-1"></i> Back</button>
+          <button class="btn-submit" onclick="submitForm()">
+            <i class="bi bi-check2-circle me-2"></i>Register Student
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /p-4 -->
+  </div><!-- /reg-main -->
+</div><!-- /reg-wrap -->
+
+<!-- Success overlay -->
+<div id="successOverlay">
+  <div class="success-card">
+    <div class="success-icon"><i class="bi bi-check-lg"></i></div>
+    <h3 class="fw-bold mb-2" style="color:#15803d;">Student Registered!</h3>
+    <p class="text-muted mb-4" id="successMsg">The student record has been created successfully.</p>
+    <div class="d-flex gap-2 justify-content-center">
+      <a href="/admin/students/register" class="btn btn-outline-secondary btn-sm">Register Another</a>
+      <a href="/admin/students" class="btn btn-sm text-white" style="background:var(--accent);">View All Students</a>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer" class="position-fixed bottom-0 end-0 p-3" style="z-index:9999;" aria-live="polite"></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  var STEPS = [
+    { id: 1,  label: 'Student Information',   sub: 'Name, DOB, gender' },
+    { id: 2,  label: 'Contact Information',   sub: 'Email, address' },
+    { id: 3,  label: 'Parent / Guardian',     sub: 'Guardian & emergency' },
+    { id: 4,  label: 'Admission Information', sub: 'Enrolment & placement' },
+    { id: 5,  label: 'Academic Information',  sub: 'Prior education, subjects' },
+    { id: 6,  label: 'Login & Portal Access', sub: 'Student & parent accounts' },
+    { id: 7,  label: 'Medical Information',   sub: 'Health & emergency' },
+    { id: 8,  label: 'Fee & Financial',       sub: 'Category, scholarship' },
+    { id: 9,  label: 'Documents',             sub: 'Upload supporting files' },
+    { id: 10, label: 'Review & Submit',       sub: 'Confirm & save' }
+  ];
+  var current = 1;
+  var done    = new Set();
+
+  // Build stepper
+  (function buildStepper() {
+    var html = STEPS.map(function(s) {
+      return '<div class="step-item" id="si-' + s.id + '" onclick="goStep(' + s.id + ')">' +
+        '<div class="step-num" id="sn-' + s.id + '"><span>' + s.id + '</span></div>' +
+        '<div class="step-label"><b>' + s.label + '</b>' + s.sub + '</div>' +
+        '</div>';
+    }).join('');
+    document.getElementById('stepperList').innerHTML = html;
+    refreshStepper();
+  })();
+
+  function refreshStepper() {
+    STEPS.forEach(function(s) {
+      var item = document.getElementById('si-' + s.id);
+      item.className = 'step-item' + (s.id === current ? ' active' : '') + (done.has(s.id) ? ' done' : '');
+    });
+    var pct = Math.round((current / STEPS.length) * 100);
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('progressPct').textContent = pct + '%';
+    document.getElementById('topStep').textContent = current;
+  }
+
+  function goStep(n) {
+    if (n < 1 || n > 10) return;
+    if (n > current) done.add(current);
+    document.getElementById('panel-' + current).classList.remove('active');
+    current = n;
+    document.getElementById('panel-' + current).classList.add('active');
+    refreshStepper();
+    document.querySelector('.reg-main').scrollTo(0, 0);
+    if (n === 6) {
+      var pe = document.getElementById('parentEmail');
+      var ple = document.getElementById('parentLoginEmail');
+      if (pe && ple && !ple.value) ple.value = pe.value;
+    }
+    if (n === 10) buildReview();
+  }
+
+  // Photo preview
+  function previewPhoto(input) {
+    if (!input.files || !input.files[0]) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var img = document.getElementById('photoPreview');
+      img.src = e.target.result;
+      img.style.display = 'block';
+      document.getElementById('photoIcon').style.display = 'none';
+      document.getElementById('photoText').style.display = 'none';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+
+  // Document zones
+  function markDoc(zoneId, input) {
+    var z = document.getElementById(zoneId);
+    if (input.files && input.files[0]) {
+      z.classList.add('has-file');
+      z.querySelector('.doc-zone-label').textContent = input.files[0].name;
+    }
+  }
+
+  // Password strength
+  function checkPw(inputId, barId, txtId) {
+    var val = document.getElementById(inputId).value;
+    var bar = document.getElementById(barId);
+    var txt = document.getElementById(txtId);
+    var score = 0;
+    if (val.length >= 8) score++;
+    if (/[A-Z]/.test(val)) score++;
+    if (/[0-9]/.test(val)) score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+    if (!val) { bar.className = 'pw-strength'; txt.textContent = ''; return; }
+    if (score <= 1)  { bar.className = 'pw-strength weak';   txt.textContent = 'Weak — add uppercase, numbers, symbols.'; }
+    else if (score <= 2) { bar.className = 'pw-strength fair'; txt.textContent = 'Fair — add more variety.'; }
+    else             { bar.className = 'pw-strength strong'; txt.textContent = 'Strong password.'; }
+  }
+
+  function togglePw(id, btn) {
+    var inp = document.getElementById(id);
+    var icon = btn.querySelector('i');
+    if (inp.type === 'password') { inp.type = 'text';     icon.className = 'bi bi-eye-slash'; }
+    else                        { inp.type = 'password'; icon.className = 'bi bi-eye'; }
+  }
+
+  // Review summary
+  function rv(label, id) {
+    var el = document.getElementById(id);
+    var v = el ? el.value : '';
+    if (!v) return '';
+    return '<div class="col-md-6 col-lg-4"><span style="color:#94a3b8;font-size:.75rem;">' + label + '</span><div class="fw-semibold">' + escH(v) + '</div></div>';
+  }
+  function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function buildReview() {
+    var html = [
+      rv('First Name', 'firstName'), rv('Last Name', 'lastName'), rv('Preferred Name', 'preferredName'),
+      rv('Student ID', 'studentId'), rv('Date of Birth', 'dateOfBirth'), rv('Gender', 'gender'),
+      rv('Nationality', 'nationality'), rv('Student Email', 'studentEmail'), rv('Mobile', 'mobileNumber'),
+      rv('Guardian', 'guardianName'), rv('Relationship', 'relationship'), rv('Parent Email', 'parentEmail'),
+      rv('Programme', 'programCourse'), rv('Grade / Year', 'gradeYear'), rv('Class', 'className'),
+      rv('Section', 'section'), rv('Admission Date', 'admissionDate'), rv('Academic Year', 'academicYear'),
+      rv('Status', 'studentStatus'), rv('Enrolment Type', 'enrollmentType'), rv('Fee Category', 'feeCategory'),
+      rv('Scholarship', 'scholarshipStatus')
+    ].filter(Boolean).join('');
+    document.getElementById('reviewContent').innerHTML = html || '<p class="text-muted">No details entered yet.</p>';
+  }
+
+  // Submit
+  async function submitForm() {
+    var firstName = document.getElementById('firstName').value.trim();
+    if (!firstName) { showToast('First name is required.', 'danger'); goStep(1); return; }
+    var studentEmail = document.getElementById('studentEmail').value.trim();
+    if (!studentEmail) { showToast('Student email is required.', 'danger'); goStep(2); return; }
+
+    var fd = new FormData();
+    // All text fields
+    var fields = ['firstName','middleName','lastName','preferredName','studentId','dateOfBirth','gender','nationality',
+                  'studentEmail','mobileNumber','addressLine1','addressLine2','city','stateCounty','postalCode','country',
+                  'guardianName','relationship','parentEmail','parentMobile','alternateContact','occupation','emergencyContactNumber',
+                  'admissionNumber','admissionDate','academicYear','campus','programCourse','gradeYear','className','section',
+                  'previousSchool','previousQualification','mediumOfInstruction','subjectsSelected',
+                  'loginEmail','loginPassword','parentPassword',
+                  'bloodGroup','allergies','medicalConditions','emergencyMedicalNotes','doctorContact',
+                  'feeCategory','scholarshipStatus','discountWaiver','sponsorInfo'];
+    fields.forEach(function(f) {
+      var el = document.getElementById(f);
+      if (el) fd.append(f, el.value || '');
+    });
+
+    // Enrolment type + status
+    fd.append('enrollmentType', document.getElementById('enrollmentType').value);
+    fd.append('studentStatus',  document.getElementById('studentStatus').value);
+
+    // Checkboxes
+    fd.append('studentPortalAccess', document.getElementById('studentPortalAccess').checked ? 'true' : 'false');
+    fd.append('parentPortalAccess',  document.getElementById('parentPortalAccess').checked  ? 'true' : 'false');
+
+    // Files
+    appendFile(fd, 'profilePhoto', 'profilePhoto');
+    appendFile(fd, 'docBirth',     'docBirth');
+    appendFile(fd, 'docPassport',  'docPassport');
+    appendFile(fd, 'docAcademic',  'docAcademic');
+    appendFile(fd, 'docAddress',   'docAddress');
+    appendFile(fd, 'docPhoto',     'docPhoto');
+    appendFile(fd, 'docGuardian',  'docGuardian');
+
+    var token = sessionStorage.getItem('edu_token') || '';
+    var btn = document.querySelector('.btn-submit');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving…';
+
+    try {
+      var res = await fetch('/api/admin/students', {
+        method: 'POST',
+        headers: token ? { 'Authorization': 'Bearer ' + token } : {},
+        body: fd
+      });
+      if (res.ok) {
+        var data = await res.json();
+        var name = (data.firstName || '') + ' ' + (data.lastName || '');
+        document.getElementById('successMsg').textContent = name.trim() + ' has been registered successfully.';
+        document.getElementById('successOverlay').classList.add('show');
+      } else {
+        var err = await res.json().catch(function() { return { message: 'Registration failed.' }; });
+        showToast(err.message || 'Registration failed.', 'danger');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check2-circle me-2"></i>Register Student';
+      }
+    } catch(e) {
+      showToast('Network error. Please try again.', 'danger');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-check2-circle me-2"></i>Register Student';
+    }
+  }
+
+  function appendFile(fd, fieldId, fieldName) {
+    var el = document.getElementById(fieldId);
+    if (el && el.files && el.files[0]) fd.append(fieldName, el.files[0]);
+  }
+
+  function showToast(msg, type) {
+    var id = 'toast_' + Date.now();
+    var html = '<div id="' + id + '" class="toast align-items-center text-white border-0 bg-' + type + ' show mb-2" role="alert">' +
+      '<div class="d-flex"><div class="toast-body">' + msg + '</div>' +
+      '<button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="document.getElementById(\'' + id + '\').remove()"></button></div></div>';
+    document.getElementById('toastContainer').insertAdjacentHTML('beforeend', html);
+    setTimeout(function() { var el = document.getElementById(id); if (el) el.remove(); }, 5000);
+  }
+
+</script>
+</body>
+</html>

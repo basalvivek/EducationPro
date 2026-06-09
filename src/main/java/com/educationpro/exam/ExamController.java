@@ -12,7 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/exams")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
 @RequiredArgsConstructor
 public class ExamController {
 
@@ -60,7 +60,21 @@ public class ExamController {
     }
 
     @PostMapping("/{id}/submit")
-    public ResponseEntity<ExamDto> submit(@PathVariable Long id) {
-        return ResponseEntity.ok(service.submit(id));
+    public ResponseEntity<ExamDto> submit(@PathVariable Long id, Authentication auth) {
+        boolean isAdmin = auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        return ResponseEntity.ok(service.submit(id, isAdmin));
+    }
+
+    @PostMapping("/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ExamDto> approve(@PathVariable Long id) {
+        return ResponseEntity.ok(service.approve(id));
+    }
+
+    @GetMapping("/pending-approval")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<ExamSummaryDto>> pendingApproval() {
+        return ResponseEntity.ok(service.findPendingApproval());
     }
 }

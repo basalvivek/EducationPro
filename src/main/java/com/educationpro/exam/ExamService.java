@@ -138,13 +138,39 @@ public class ExamService {
         return findById(examId);
     }
 
-    public ExamDto submit(Long examId) {
+    public ExamDto submit(Long examId, boolean isAdmin) {
         Exam exam = examRepo.findById(examId)
             .orElseThrow(() -> new EntityNotFoundException("Exam not found: " + examId));
+        if (!"DRAFT".equals(exam.getStatus())) {
+            throw new BusinessException("Only DRAFT exams can be submitted.");
+        }
+        exam.setStatus(isAdmin ? "APPROVED" : "PENDING_APPROVAL");
+        List<ExamQuestionDto> qs = examQRepo.findByExamIdOrderByPositionAsc(examId)
+            .stream().map(this::toExamQuestionDto).toList();
+        return toDto(examRepo.save(exam), qs);
+    }
+
+    public ExamDto approve(Long examId) {
+        Exam exam = examRepo.findById(examId)
+            .orElseThrow(() -> new EntityNotFoundException("Exam not found: " + examId));
+        if (!"PENDING_APPROVAL".equals(exam.getStatus())) {
+            throw new BusinessException("Only PENDING_APPROVAL exams can be approved.");
+        }
         exam.setStatus("APPROVED");
         List<ExamQuestionDto> qs = examQRepo.findByExamIdOrderByPositionAsc(examId)
             .stream().map(this::toExamQuestionDto).toList();
         return toDto(examRepo.save(exam), qs);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ExamSummaryDto> findPendingApproval() {
+        return examRepo.findByStatusWithCreator("PENDING_APPROVAL").stream()
+            .map(e -> new ExamSummaryDto(
+                e.getId(), e.getName(), e.getStatus(),
+                e.getTimeLimitMinutes(), e.getTotalMarks(),
+                examQRepo.findByExamIdOrderByPositionAsc(e.getId()).size(),
+                e.getCreatedBy().getFullName()))
+            .toList();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
