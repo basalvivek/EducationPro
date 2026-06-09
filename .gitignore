@@ -1,0 +1,30 @@
+# Maven
+target/
+*.class
+*.jar
+*.war
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# Logs & runtime
+app.log
+*.log
+logs/
+
+# Uploads / user content
+uploads/
+
+# Environment / secrets — profile-specific configs with real credentials
+*.env
+application-dev.properties
+application-prod.properties
+application-prod.yml
+application-staging.yml
+
+# OS
+.DS_Store
+Thumbs.db
