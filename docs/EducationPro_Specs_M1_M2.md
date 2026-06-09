@@ -1,6 +1,6 @@
 # EducationPro — Developer-Ready Specification
-### Modules 1, 2 & 3 | Spring Boot + PostgreSQL + Bootstrap 5
-**Version:** 1.2 | **Status:** Draft | **Audience:** Senior Developers & Architects
+### Modules 1–4 | Spring Boot + PostgreSQL + Bootstrap 5
+**Version:** 1.3 | **Status:** Draft | **Audience:** Senior Developers & Architects
 
 ---
 
@@ -34,8 +34,15 @@
    - 6.4 API Contracts
    - 6.5 Database Schema
    - 6.6 Key Implementation Notes
-7. [Error Handling Standards](#7-error-handling-standards)
-8. [Non-Functional Requirements](#8-non-functional-requirements)
+7. [Module 4 — Teacher/Student Management & Assignments](#7-module-4--teacherstudent-management--assignments)
+   - 7.1 UI Design System (Card Pattern)
+   - 7.2 Teacher Management
+   - 7.3 Student Management
+   - 7.4 Assignments Page
+   - 7.5 API Contracts
+   - 7.6 Database Schema
+8. [Error Handling Standards](#8-error-handling-standards)
+9. [Non-Functional Requirements](#9-non-functional-requirements)
 
 ---
 
@@ -2474,6 +2481,11 @@ V3__course_nodes.sql
 V4__course_nodes_expand.sql
 V5__reset_admin_password.sql
 V6__assessment_designer.sql
+V7__add_teacher_user.sql
+V8__add_pending_approval_status.sql
+V9__teacher_profiles.sql
+V10__student_profiles.sql
+V11__assignments.sql
 ```
 
 ---
@@ -2559,7 +2571,272 @@ Returns `400 BusinessException` on any mismatch.
 
 ---
 
-## 7. Error Handling Standards
+## 7. Module 4 — Teacher/Student Management & Assignments
+
+### 7.1 UI Design System (Card Pattern)
+
+All admin pages use a unified card/panel design applied consistently from the assignments page:
+
+| Token | Value |
+|---|---|
+| Workspace background | `#f8fafc` |
+| Panel card background | `#ffffff` |
+| Panel card border | `1px solid #e2e8f0` |
+| Panel card border-radius | `12px` |
+| Panel card shadow | `0 1px 3px 0 rgba(0,0,0,.1), 0 1px 2px -1px rgba(0,0,0,.08)` |
+| Panel header icon square | `28×28px`, `border-radius:8px`, role-tinted bg (e.g. `#eff6ff` for blue) |
+| Panel header title | `font-weight:700; color:#1a2332; font-size:.875rem` |
+| Empty state (full panel) | `.empty-state` class — centered icon + title + subtitle |
+| Empty state (inline) | `.panel-empty` class |
+| Item grid cards | `.item-card` with `.item-card__bar--blue/purple/green` accent bar |
+| User avatars | `.user-avatar.user-avatar--lg.user-avatar--blue/purple` gradient circles |
+| Filter bar | `.filter-card` wrapper class |
+
+**Icons:** Bootstrap Icons 1.11.3. No legacy text arrows (`▾`, `›`, `↑↓`). Use `bi-chevron-down/right`, `bi-chevron-up/down`.
+
+**Cache-busting:** Thymeleaf `th:href="@{/css/main.css(v=3)}"` generates `/css/main.css?v=3`.
+
+---
+
+### 7.2 Teacher Management
+
+#### Route & Template
+- Page: `GET /admin/teachers` → `templates/admin/teachers.html`
+- Register form: `GET /admin/teachers/register` → `templates/admin/teacher-register.html`
+
+#### Domain
+- `TeacherProfile` entity (`teacher_profiles` table, 1:1 with `users`)
+- Migration: `V9__teacher_profiles.sql`
+
+#### API
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/admin/teachers` | List all → `TeacherSummaryDto[]` |
+| `POST` | `/api/admin/teachers` | Register (multipart: profile photo + 6 doc uploads) |
+
+**`TeacherSummaryDto`:**
+```json
+{
+  "id": 1,
+  "userId": 3,
+  "teacherId": "TCH-001",
+  "firstName": "Jane",
+  "lastName": "Smith",
+  "email": "jane@school.edu",
+  "designation": "Senior Teacher",
+  "department": "Mathematics",
+  "employmentStatus": "ACTIVE",
+  "employmentType": "FULL_TIME",
+  "profilePhotoPath": "uploads/teacher_1/photo.jpg",
+  "joiningDate": "2024-01-15"
+}
+```
+
+> **Important:** `TeacherSummaryDto.id` = `teacher_profiles.id` (NOT `users.id`). Use this ID when referencing teachers in assignment payloads.
+
+---
+
+### 7.3 Student Management
+
+#### Route & Template
+- Page: `GET /admin/students` → `templates/admin/students.html`
+- Register form: `GET /admin/students/register` → `templates/admin/student-register.html`
+
+#### Domain
+- `StudentProfile` entity (`student_profiles` table, linked to `users`)
+- Migration: `V10__student_profiles.sql`
+
+#### API
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/admin/students` | List all → `StudentSummaryDto[]` |
+| `POST` | `/api/admin/students` | Register (multipart) |
+
+**`StudentSummaryDto`:**
+```json
+{
+  "id": 3,
+  "studentId": "STU-2024-003",
+  "firstName": "Arnav",
+  "lastName": "Basal",
+  "gradeYear": "Year 10",
+  "className": "10A",
+  "section": "A",
+  "studentStatus": "ACTIVE",
+  "enrollmentType": "FULL_TIME",
+  "programCourse": "GCSE Sciences"
+}
+```
+
+> **Important:** `StudentSummaryDto.id` = `student_profiles.id`. Use this in assignment group student lists.
+
+---
+
+### 7.4 Assignments Page
+
+#### Route & Template
+`GET /admin/assignments` → `templates/admin/assignments.html`
+JS: `static/js/assignments.js`
+
+#### Three-Step Flow
+
+```
+Card 1: Select Course     →  Card 2: Create Groups     →  Card 3: Assign Teachers
+(dropdown + scope radio)      (modal, student enrol)        (modal, teacher select)
+         ↓                           ↓                              ↓
+  S.selectedCourseId           S.groups[]                  S.activatedTeacherIds[]
+  S.selectedScopeKey           S.maxPerGroup                S.assignments{}
+```
+
+#### Frontend State (`var S`)
+```javascript
+var S = {
+  nodes:            [],   // flat course_nodes from GET /api/admin/course-nodes
+  students:         [],   // StudentSummaryDto[] from GET /api/admin/students
+  teachers:         [],   // TeacherSummaryDto[] from GET /api/admin/teachers
+  selectedCourseId: null,
+  maxPerGroup:      30,
+  groups:           [],   // {id(local), name, desc, period, studentIds:[]}
+  assignments:      {},   // teacherProfileId -> groupLocalId
+  nextGroupId:      1,
+  activatedTeacherIds: [], // teacher profile IDs added via modal
+  scopeNodes:       { course: null, subject: null, board: null },
+  selectedScopeKey: null   // 'course' | 'subject' | 'board'
+};
+```
+
+#### Save Payload (`POST /api/admin/assignments`)
+
+```json
+{
+  "courseNodeId":  10,
+  "scopeNodeId":   11,
+  "scopeLevel":    "subject",
+  "maxPerGroup":   30,
+  "status":        "DRAFT",
+  "groups": [
+    {
+      "localId":    1,
+      "name":       "Group Alpha",
+      "description":"Morning batch",
+      "period":     "2025-2026",
+      "studentIds": [1, 3, 5]
+    }
+  ],
+  "teacherAssignments": [
+    { "teacherId": 1, "groupLocalId": 1 }
+  ]
+}
+```
+
+`localId` — ephemeral frontend ID; service maps it to the saved `assignment_groups.id` via `Map<Integer, AssignmentGroup>`. `teacherId` = `teacher_profiles.id`. `studentIds` = `student_profiles.id[]`.
+
+**Response:**
+```json
+{ "sessionId": 5, "status": "SAVED", "message": "Assignment saved successfully" }
+```
+
+#### Save Button IDs
+- `id="btnSaveDraft"` → calls `saveAsDraft()` → status `DRAFT`
+- `id="btnReviewSave"` → calls `reviewAndSave()` → status `SAVED`
+
+Both show a spinner while the POST is in flight; restore label on completion.
+
+---
+
+### 7.5 API Contracts (Module 4)
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/admin/teachers` | ADMIN | List teacher profiles |
+| `POST` | `/api/admin/teachers` | ADMIN | Register teacher (multipart) |
+| `GET` | `/api/admin/students` | ADMIN | List student profiles |
+| `POST` | `/api/admin/students` | ADMIN | Register student (multipart) |
+| `POST` | `/api/admin/assignments` | ADMIN | Create assignment session |
+
+---
+
+### 7.6 Database Schema (Module 4)
+
+```sql
+-- V9: teacher_profiles (key columns only)
+CREATE TABLE teacher_profiles (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     BIGINT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    teacher_id  VARCHAR(50),
+    first_name  VARCHAR(100) NOT NULL,
+    last_name   VARCHAR(100) NOT NULL,
+    designation VARCHAR(150),
+    department  VARCHAR(150),
+    employment_status VARCHAR(20) DEFAULT 'ACTIVE'
+      CHECK (employment_status IN ('ACTIVE','INACTIVE','ON_LEAVE')),
+    employment_type   VARCHAR(20)
+      CHECK (employment_type IN ('FULL_TIME','PART_TIME','CONTRACT')),
+    joining_date DATE,
+    -- + address, emergency contact, payroll, document paths, audit cols
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- V10: student_profiles (key columns only)
+CREATE TABLE student_profiles (
+    id             BIGSERIAL PRIMARY KEY,
+    user_id        BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    student_id     VARCHAR(50),
+    first_name     VARCHAR(100) NOT NULL,
+    last_name      VARCHAR(100) NOT NULL,
+    grade_year     VARCHAR(50),
+    class_name     VARCHAR(50),
+    section        VARCHAR(20),
+    student_status VARCHAR(20) DEFAULT 'ACTIVE'
+      CHECK (student_status IN ('ACTIVE','INACTIVE','GRADUATED','SUSPENDED')),
+    -- + guardian info, address, documents, audit cols
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- V11: assignments
+CREATE TABLE assignment_sessions (
+    id             BIGSERIAL PRIMARY KEY,
+    course_node_id BIGINT NOT NULL REFERENCES course_nodes(id) ON DELETE CASCADE,
+    scope_node_id  BIGINT REFERENCES course_nodes(id) ON DELETE SET NULL,
+    scope_level    VARCHAR(20) NOT NULL CHECK (scope_level IN ('course','subject','board')),
+    max_per_group  INT NOT NULL DEFAULT 30,
+    status         VARCHAR(20) NOT NULL DEFAULT 'DRAFT'
+                   CHECK (status IN ('DRAFT','SAVED')),
+    created_by     BIGINT NOT NULL REFERENCES users(id),
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE assignment_groups (
+    id          BIGSERIAL PRIMARY KEY,
+    session_id  BIGINT NOT NULL REFERENCES assignment_sessions(id) ON DELETE CASCADE,
+    name        VARCHAR(200) NOT NULL,
+    description TEXT,
+    period      VARCHAR(100)
+);
+
+CREATE TABLE assignment_group_students (
+    group_id           BIGINT NOT NULL REFERENCES assignment_groups(id) ON DELETE CASCADE,
+    student_profile_id BIGINT NOT NULL REFERENCES student_profiles(id) ON DELETE CASCADE,
+    PRIMARY KEY (group_id, student_profile_id)
+);
+
+CREATE TABLE assignment_teacher_mappings (
+    id                 BIGSERIAL PRIMARY KEY,
+    session_id         BIGINT NOT NULL REFERENCES assignment_sessions(id) ON DELETE CASCADE,
+    teacher_profile_id BIGINT NOT NULL REFERENCES teacher_profiles(id) ON DELETE CASCADE,
+    group_id           BIGINT REFERENCES assignment_groups(id) ON DELETE SET NULL,
+    UNIQUE (session_id, teacher_profile_id)
+);
+```
+
+> **Key constraint:** `assignment_group_students` → `student_profiles(id)` and `assignment_teacher_mappings` → `teacher_profiles(id)`. These are profile IDs, not `users.id`. The APIs (`GET /api/admin/students`, `GET /api/admin/teachers`) return profile IDs in their `id` field.
+
+---
+
+## 8. Error Handling Standards
 
 ### Global Exception Handler
 ```java
@@ -2619,7 +2896,7 @@ function showToast(message, type = 'danger') {
 
 ---
 
-## 8. Non-Functional Requirements
+## 9. Non-Functional Requirements
 
 | Category | Requirement |
 |---|---|
@@ -2643,5 +2920,5 @@ db/migration/
 
 ---
 
-*End of Specification — EducationPro Modules 1, 2 & 3*
-*Next modules: Module 4 (Student Course View)*
+*End of Specification — EducationPro Modules 1–4*
+*Next: Module 4 remaining (load/edit saved sessions), Module 5 (Student Course View)*

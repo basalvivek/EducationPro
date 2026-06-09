@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-Web application running on `localhost:9090` (dev profile). Modules 1, 2, and 3 are implemented. `docs/EducationPro_Specs_M1_M2.md` is the authoritative spec (covers M1–M3). All implementation decisions must align with it.
+Web application running on `localhost:9090` (dev profile). Modules 1–3 fully implemented. Module 4 (teacher/student management + assignments) partially implemented — backend persists but frontend listing/detail views are stubs. `docs/EducationPro_Specs_M1_M2.md` is the authoritative spec (covers M1–M4). All implementation decisions must align with it.
 
 Default admin credentials: `admin@educationpro.com` / `Admin@123`
 
@@ -72,6 +72,37 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 - Domains: `Exam`, `ExamQuestion`; repositories: `ExamRepository`, `ExamQuestionRepository`
 - JS: `static/js/exam.js`; template: `templates/admin/exam-builder.html`
 
+### Module 4 — Teacher & Student Management + Assignments (`/admin/teachers`, `/admin/students`, `/admin/assignments`)
+
+#### Teacher Management (`/api/admin/teachers`)
+- Domain: `TeacherProfile` (extended teacher data linked 1:1 to `users`); migration `V9__teacher_profiles.sql`
+- Register: `POST /api/admin/teachers` (multipart — profile photo + 6 document uploads)
+- List: `GET /api/admin/teachers` → `TeacherSummaryDto[]`; `TeacherSummaryDto.id` = `teacher_profiles.id`
+- Service: `TeacherManagementService`; Controller: `TeacherManagementController`
+
+#### Student Management (`/api/admin/students`)
+- Domain: `StudentProfile`; migration `V10__student_profiles.sql`
+- Register: `POST /api/admin/students` (multipart); List: `GET /api/admin/students` → `StudentSummaryDto[]`
+- `StudentSummaryDto.id` = `student_profiles.id` — use this as foreign key in assignments
+- Service: `StudentManagementService`; Controller: `StudentManagementController`
+
+#### Approvals (`/admin/approvals`)
+- Template: `templates/admin/approvals.html`; approval items fetched from `/api/admin/approvals` (planned)
+- Currently a UI stub — lists pending teacher/student registrations with approve/reject buttons
+
+#### Assignments (`/admin/assignments`)
+- Three-step flow: Select Course → Create Groups (with student enrolment) → Assign Teachers
+- Frontend state: `var S` in `static/js/assignments.js` — holds `groups[]`, `assignments{}`, `activatedTeacherIds[]`, `scopeNodes`, `selectedScopeKey`
+- Scope selection: course (L1), subject (L2), or exam board (L3) radio — scope node ID persisted
+- Save endpoints:
+  - `POST /api/admin/assignments` with `status=DRAFT` or `status=SAVED` → `AssignmentResultDto {sessionId, status, message}`
+- DB tables (V11): `assignment_sessions`, `assignment_groups`, `assignment_group_students`, `assignment_teacher_mappings`
+- Domains: `AssignmentSession`, `AssignmentGroup`, `AssignmentTeacherMapping`
+- Repos: `AssignmentSessionRepository`, `AssignmentGroupRepository`, `AssignmentTeacherMappingRepository`
+- Service: `AssignmentService`; Controller: `AssignmentController`
+- **Key**: `groupLocalId` in JS payload maps frontend ephemeral group IDs to saved DB group IDs via `Map<Integer, AssignmentGroup>` in service
+- **Key**: `assignment_group_students.student_profile_id` references `student_profiles.id`; `assignment_teacher_mappings.teacher_profile_id` references `teacher_profiles.id`
+
 ### Security Architecture
 
 - Spring Security 6, stateless sessions (`STATELESS`)
@@ -95,16 +126,28 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 - Toast notifications via `showToast(message, type)` appended to `#toastContainer` (fixed, bottom-right)
 - `escHtml()` required when injecting user content into `innerHTML`
 
+#### Card / Panel Design System (applied to all admin pages)
+- Workspace background: `background:#f8fafc; padding:.75rem; gap:.75rem`
+- Panel cards: `background:#ffffff; border-radius:12px; box-shadow:0 1px 3px 0 rgba(0,0,0,.1),0 1px 2px -1px rgba(0,0,0,.08); border:1px solid #e2e8f0`
+- Panel header icon squares: `width:28px;height:28px;border-radius:8px` with role-tinted background
+- Panel header title: `font-weight:700; color:#1a2332; font-size:.875rem`
+- Filter bar wrapper: `.filter-card` class
+- Item grid cards: `.item-card` with `.item-card__bar--blue/purple/green` colored left bar
+- Avatar circles: `.user-avatar.user-avatar--lg.user-avatar--blue/purple` gradient circles
+- Empty states: `.empty-state` (full panel) or `.panel-empty` (inline)
+- Bootstrap Icons 1.11.3 used throughout — no legacy text arrows (`▾`, `›`, `↑↓`); use `bi-chevron-down/right/up`
+- Cache-bust CSS/JS in Thymeleaf: `th:href="@{/css/main.css(v=3)}"` pattern
+
 ### Admin Shell Layout
 
-All admin pages share the same sidebar + topbar shell (no Thymeleaf fragments — duplicated across 6 templates). Update all when changing shared chrome.
+All admin pages share the same sidebar + topbar shell (no Thymeleaf fragments — duplicated across 10 templates). Update all when changing shared chrome.
 
 **Sidebar** (`<nav class="sidebar">`)
 - Background: `--sidebar-bg: #0c3577` (dark navy); width: 260px
 - Scrollable nav (`overflow-y: auto`) with 7 categorized groups using `.sidebar__group-label`
 - Disabled future items use `.nav-link.disabled` (38% opacity, pointer-events none)
 - Groups: Overview | Academic Management | Faculty Management | Student Management | Assessment & Evaluation | Operations | Insights & Reporting
-- Active items (implemented): Dashboard, Analytics, Design Courses, Assessment Designer, Teachers, Students, Approvals
+- Active items (implemented): Dashboard, Analytics, Design Courses, Assessment Designer, Teachers, Students, Approvals, Assignments
 
 **Topbar** (`<header class="topbar">`)
 - Right side: bell icon + user avatar dropdown
@@ -118,8 +161,13 @@ All admin pages share the same sidebar + topbar shell (no Thymeleaf fragments �
 - `course_nodes` has DB-level CHECK: `type != 'QUESTION' OR parent_id IS NOT NULL` (questions must have a parent)
 - `exams.status` CHECK constraint: `('DRAFT','APPROVED')`
 - `exam_questions` has UNIQUE constraint on `(exam_id, question_id)`; `ON DELETE CASCADE` from both `exams` and `course_nodes`
+- `assignment_sessions.status` CHECK: `('DRAFT','SAVED')`; `scope_level` CHECK: `('course','subject','board')`
+- `assignment_teacher_mappings` UNIQUE on `(session_id, teacher_profile_id)`
+- `assignment_group_students` references `student_profiles(id)` NOT `users(id)`
+- `assignment_teacher_mappings` references `teacher_profiles(id)` NOT `users(id)`
 - Index on `users(email, role)` for login queries
-- Flyway migration order: `V1__init_users.sql` → `V2__password_reset_tokens.sql` → `V3__course_nodes.sql` → `V4__course_nodes_expand.sql` → `V5__reset_admin_password.sql` → `V6__assessment_designer.sql`
+- Flyway migration order:
+  `V1__init_users.sql` → `V2__password_reset_tokens.sql` → `V3__course_nodes.sql` → `V4__course_nodes_expand.sql` → `V5__reset_admin_password.sql` → `V6__assessment_designer.sql` → `V7__add_teacher_user.sql` → `V8__add_pending_approval_status.sql` → `V9__teacher_profiles.sql` → `V10__student_profiles.sql` → `V11__assignments.sql`
 
 ## NFRs to Keep in Mind
 
@@ -130,6 +178,9 @@ All admin pages share the same sidebar + topbar shell (no Thymeleaf fragments �
 - Spring Profiles: `dev`, `staging`, `prod` for DB creds and JWT secret
 - Testing: JUnit 5 + Mockito (service layer); Playwright/Selenium (E2E login)
 
-## Planned Modules
+## Planned / Next Work
 
-- Module 4: Student Course View
+- Module 4 remaining: load saved assignment sessions on page open, edit/delete sessions, student course view
+- Module 5: Student Course View (enrolled courses, quiz taking, progress tracking)
+- Approvals: wire `/api/admin/approvals` endpoint to approve/reject pending teacher/student registrations
+- Teacher portal: teacher-facing course designer and exam builder (templates exist as stubs in `templates/teacher/`)
