@@ -25,27 +25,18 @@ public class ScheduleService {
     private final ScheduleConflictRepository conflictRepository;
     private final ScheduleNotificationRepository notificationRepository;
     private final AssignmentSessionRepository sessionRepository;
-    private final TeacherRepository teacherRepository;
     private final AssignmentGroupRepository groupRepository;
-    private final CourseNodeRepository courseNodeRepository;
     private final ClassroomRepository classroomRepository;
     private final EquipmentRepository equipmentRepository;
-    private final UserRepository userRepository;
 
     public ClassScheduleDto createSchedule(ClassScheduleCreateRequest request, Long userId) {
         AssignmentSession session = sessionRepository.findById(request.getSessionId())
             .orElseThrow(() -> new RuntimeException("Session not found"));
-        TeacherProfile teacher = teacherRepository.findById(request.getTeacherId())
-            .orElseThrow(() -> new RuntimeException("Teacher not found"));
         AssignmentGroup group = groupRepository.findById(request.getGroupId())
             .orElseThrow(() -> new RuntimeException("Group not found"));
 
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-
         ClassSchedule schedule = ClassSchedule.builder()
             .assignmentSession(session)
-            .teacher(teacher)
             .assignmentGroup(group)
             .scheduleType(request.getScheduleType())
             .dateMode(request.getDateMode())
@@ -62,7 +53,6 @@ public class ScheduleService {
             .notifyParents(request.getNotifyParents() != null && request.getNotifyParents())
             .sendReminder(request.getSendReminder() != null && request.getSendReminder())
             .eventColor(request.getEventColor() != null ? request.getEventColor() : "blue")
-            .createdBy(user)
             .build();
 
         if (request.getClassroomId() != null) {

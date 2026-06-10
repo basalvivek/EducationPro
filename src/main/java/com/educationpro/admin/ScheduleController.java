@@ -6,7 +6,7 @@ import com.educationpro.service.ScheduleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.preauthorize.PreAuthorize;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,7 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/schedules")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@Secured("ROLE_ADMIN")
 public class ScheduleController {
 
     private final ScheduleService scheduleService;
