@@ -414,10 +414,10 @@ function renderTeachers() {
 
   if (!active.length) {
     tbody.innerHTML =
-      '<tr><td colspan="4" class="text-center text-muted py-5 small">' +
+      '<tr><td colspan="3" class="text-center text-muted py-5 small">' +
         '<div class="mb-2"><i class="bi bi-person-badge" style="font-size:1.6rem;color:#c4b5fd;"></i></div>' +
         'No teachers assigned yet.<br>' +
-        '<span style="font-size:.75rem;">Use <strong>Assign Teachers</strong> in Card 3 to add teachers.</span>' +
+        '<span style="font-size:.75rem;">Use <strong>Assign Teachers</strong> or <strong>Assign Group</strong> to add teachers.</span>' +
       '</td></tr>';
     return;
   }
@@ -462,7 +462,8 @@ function renderTeachers() {
         '</div>' +
       '</td>' +
       '<td class="small text-muted">' + escHtml(t.department || t.designation || '—') + '</td>' +
-      '<td>' + assignmentHtml + '</td>';
+      '<td>' + assignmentHtml + '</td>' +
+      '<td></td>';
     tbody.appendChild(tr);
   });
 }
