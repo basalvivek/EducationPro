@@ -30,6 +30,11 @@ public class AdminController {
         return "admin/approvals";
     }
 
+    @GetMapping("/schedule")
+    public String schedule() {
+        return "admin/schedule";
+    }
+
     @GetMapping("/teachers")
     public String teachers() {
         return "admin/teachers";
