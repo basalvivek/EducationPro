@@ -7,88 +7,464 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
-  <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"/>
   <link rel="stylesheet" th:href="@{/css/main.css(v=3)}"/>
+  <style>
+    :root {
+      --primary: #4F46E5;
+      --primary-light: #EEF2FF;
+      --secondary: #06B6D4;
+      --success: #22C55E;
+      --danger: #EF4444;
+      --bg-app: #F8FAFC;
+      --card: #FFFFFF;
+      --border: #E2E8F0;
+      --text-primary: #1a2332;
+      --text-muted: #6c757d;
+    }
+
+    body { background: var(--bg-app); overflow: hidden; }
+
+    /* ── Tree Panel Redesign ── */
+    #treePanel {
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      border: 1px solid var(--border);
+      transition: box-shadow 0.3s ease;
+    }
+
+    #treePanel:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    /* Course Explorer Header */
+    .tree-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(135deg, #FFFFFF 0%, #FAFBFF 100%);
+    }
+
+    .tree-title {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .node-count {
+      display: inline-block;
+      background: var(--primary-light);
+      color: var(--primary);
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    /* Search Box */
+    .tree-search {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tree-search input {
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.75rem 0.5rem 2rem;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.398 1.398h.001c.03.02.062.04.092.061l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.061-.092zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>');
+      background-repeat: no-repeat;
+      background-position: 0.5rem center;
+      background-size: 1rem;
+      background-color: #FAFAFF;
+      font-size: 0.875rem;
+      transition: all 0.2s ease;
+    }
+
+    .tree-search input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+      background-color: var(--card);
+    }
+
+    /* Tree Items */
+    .tree-item {
+      padding: 0.625rem 0.75rem;
+      margin-bottom: 0.5rem;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border-left: 3px solid transparent;
+    }
+
+    .tree-item:hover {
+      background: var(--primary-light);
+      transform: translateX(2px);
+    }
+
+    .tree-item.selected {
+      background: var(--primary-light);
+      border-left-color: var(--primary);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+    }
+
+    .tree-item-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+
+    .tree-item-icon.course { background: #DBEAFE; color: #0d6efd; }
+    .tree-item-icon.subject { background: #DBEAFE; color: #0d6efd; }
+    .tree-item-icon.board { background: #F0E7FE; color: #6f42c1; }
+    .tree-item-icon.topic { background: #CFFAFE; color: #06b6d4; }
+    .tree-item-icon.question { background: #FEF3C7; color: #d97706; }
+
+    .tree-item-label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tree-item-badge {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      flex-shrink: 0;
+      text-transform: uppercase;
+    }
+
+    .badge-course { background: #DBEAFE; color: #1e40af; }
+    .badge-subject { background: #DBEAFE; color: #1e40af; }
+    .badge-board { background: #F0E7FE; color: #5b21b6; }
+    .badge-topic { background: #CFFAFE; color: #0d5c7e; }
+    .badge-question { background: #FEF3C7; color: #7c2d12; }
+
+    /* ── Detail Panel Redesign ── */
+    #detailPanel {
+      background: linear-gradient(135deg, #FFFFFF 0%, #FAFBFF 100%);
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      border: 1px solid var(--border);
+      padding: 0;
+      overflow: auto;
+    }
+
+    /* Hero Banner */
+    .detail-hero {
+      background: linear-gradient(135deg, var(--primary) 0%, #7C3AED 100%);
+      color: white;
+      padding: 2rem 2.5rem;
+      border-radius: 16px 16px 0 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .detail-hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 200px;
+      height: 200px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      filter: blur(60px);
+    }
+
+    .detail-hero-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .detail-hero-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0 0 0.5rem 0;
+    }
+
+    .detail-hero-subtitle {
+      font-size: 0.95rem;
+      opacity: 0.95;
+      margin: 0;
+    }
+
+    /* Form Container */
+    .detail-form-container {
+      padding: 2rem 2.5rem;
+    }
+
+    .form-group-modern {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group-modern label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    .form-control-modern {
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      background: #FAFAFF;
+      font-size: 0.875rem;
+      transition: all 0.3s ease;
+    }
+
+    .form-control-modern:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1), inset 0 1px 2px rgba(0, 0, 0, 0.05);
+      background: var(--card);
+    }
+
+    textarea.form-control-modern {
+      resize: vertical;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Stats Panel */
+    .detail-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .stat-item {
+      background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+      padding: 1rem;
+      border-radius: 12px;
+      text-align: center;
+      border: 1px solid var(--border);
+      transition: all 0.3s ease;
+    }
+
+    .stat-item:hover {
+      border-color: var(--primary);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1);
+    }
+
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-top: 0.5rem;
+    }
+
+    /* Activity Card */
+    .detail-activity {
+      background: linear-gradient(135deg, var(--primary-light) 0%, #E0E7FF 100%);
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-top: 1.5rem;
+      border: 1px solid #C7D2FE;
+    }
+
+    .activity-title {
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+    }
+
+    .activity-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid rgba(79, 70, 229, 0.1);
+      font-size: 0.85rem;
+    }
+
+    .activity-row:last-child {
+      border-bottom: none;
+    }
+
+    .activity-label {
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .activity-value {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    /* Action Buttons */
+    .btn-primary-gradient {
+      background: linear-gradient(135deg, var(--primary) 0%, #7C3AED 100%);
+      border: none;
+      color: white;
+      font-weight: 600;
+      padding: 0.75rem 1.5rem;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .btn-primary-gradient:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(79, 70, 229, 0.3);
+    }
+
+    .btn-primary-gradient:active {
+      transform: translateY(0);
+    }
+
+    .btn-danger-outline {
+      border: 1.5px solid var(--danger);
+      color: var(--danger);
+      background: transparent;
+      font-weight: 600;
+      padding: 0.75rem 1.5rem;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .btn-danger-outline:hover {
+      background: rgba(239, 68, 68, 0.05);
+      border-color: var(--danger);
+    }
+
+    /* Empty State */
+    .empty-state-premium {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 400px;
+      padding: 3rem;
+      text-align: center;
+    }
+
+    .empty-state-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, var(--primary-light) 0%, #E0E7FF 100%);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .empty-state-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 0.75rem;
+    }
+
+    .empty-state-subtitle {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      max-width: 300px;
+    }
+
+    /* Transitions */
+    * {
+      transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+  </style>
 </head>
-<body style="overflow:hidden;">
+<body>
 
 <div class="d-flex" id="adminWrapper" style="height:100vh;">
 
   <!-- ── SIDEBAR ──────────────────────────────────────────────────────────── -->
   <nav id="sidebar" class="sidebar" aria-label="Admin navigation">
-
-    <!-- Brand -->
     <a href="/admin/dashboard" class="sidebar__brand">
       <i class="bi bi-mortarboard-fill"></i>
       <span>EduPro Admin</span>
     </a>
-
-    <!-- Primary nav -->
     <ul class="sidebar__nav">
-
       <li class="sidebar__group-label">Overview</li>
       <li><a class="nav-link" href="/admin/dashboard"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
       <li><a class="nav-link" href="/admin/analytics"><i class="bi bi-bar-chart-line"></i><span>Analytics</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-bell"></i><span>Notifications</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-bell"></i><span>Notifications</span></a></li>
 
       <li class="sidebar__group-label">Academic Management</li>
-      <li><a class="nav-link active" href="/admin/courses/design" aria-current="page"><i class="bi bi-diagram-3"></i><span>Design Courses</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-signpost-split"></i><span>Learning Paths</span></a></li>
+      <li><a class="nav-link active" href="/admin/courses/design"><i class="bi bi-diagram-3"></i><span>Design Courses</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-signpost-split"></i><span>Learning Paths</span></a></li>
       <li><a class="nav-link" href="/admin/exams/builder"><i class="bi bi-journal-check"></i><span>Assessment Designer</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-patch-question"></i><span>Question Bank</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-patch-question"></i><span>Question Bank</span></a></li>
       <li><a class="nav-link" href="/admin/assignments"><i class="bi bi-clipboard2-check"></i><span>Assignments</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-award"></i><span>Certificates</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-award"></i><span>Certificates</span></a></li>
 
       <li class="sidebar__group-label">Faculty Management</li>
       <li><a class="nav-link" href="/admin/teachers"><i class="bi bi-person-badge"></i><span>Teachers</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-building"></i><span>Departments</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-briefcase"></i><span>Workload Management</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-calendar-check"></i><span>Attendance</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-star-half"></i><span>Performance Reviews</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-building"></i><span>Departments</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-briefcase"></i><span>Workload Management</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-calendar-check"></i><span>Attendance</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-star-half"></i><span>Performance Reviews</span></a></li>
 
       <li class="sidebar__group-label">Student Management</li>
       <li><a class="nav-link" href="/admin/students"><i class="bi bi-mortarboard"></i><span>Students</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-person-plus"></i><span>Enrollments</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-calendar2-check"></i><span>Attendance</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-graph-up"></i><span>Progress Tracking</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-trophy"></i><span>Achievements</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-person-plus"></i><span>Enrollments</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-calendar2-check"></i><span>Attendance</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-graph-up"></i><span>Progress Tracking</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-trophy"></i><span>Achievements</span></a></li>
 
-      <li class="sidebar__group-label">Assessment &amp; Evaluation</li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-patch-question-fill"></i><span>Question Bank</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-calendar-event"></i><span>Exam Scheduling</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-inbox"></i><span>Submissions</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-clipboard-data"></i><span>Results</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-pencil-square"></i><span>Grading</span></a></li>
+      <li class="sidebar__group-label">Assessment & Evaluation</li>
+      <li><a class="nav-link disabled"><i class="bi bi-patch-question-fill"></i><span>Question Bank</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-calendar-event"></i><span>Exam Scheduling</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-inbox"></i><span>Submissions</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-clipboard-data"></i><span>Results</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-pencil-square"></i><span>Grading</span></a></li>
 
       <li class="sidebar__group-label">Operations</li>
       <li><a class="nav-link" href="/admin/approvals"><i class="bi bi-check2-circle"></i><span>Approvals</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-hand-index-thumb"></i><span>Requests</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-calendar3"></i><span>Leave Management</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-megaphone"></i><span>Announcements</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-calendar-week"></i><span>Events</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-hand-index-thumb"></i><span>Requests</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-calendar3"></i><span>Leave Management</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-megaphone"></i><span>Announcements</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-calendar-week"></i><span>Events</span></a></li>
 
-      <li class="sidebar__group-label">Insights &amp; Reporting</li>
+      <li class="sidebar__group-label">Insights & Reporting</li>
       <li><a class="nav-link" href="/admin/analytics"><i class="bi bi-bar-chart-line"></i><span>Analytics</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-speedometer"></i><span>Performance Dashboard</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-person-check"></i><span>Student Success Metrics</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-graph-up-arrow"></i><span>Faculty Analytics</span></a></li>
-      <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-file-earmark-text"></i><span>Custom Reports</span></a></li>
-
-
+      <li><a class="nav-link disabled"><i class="bi bi-speedometer"></i><span>Performance Dashboard</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-person-check"></i><span>Student Success Metrics</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-graph-up-arrow"></i><span>Faculty Analytics</span></a></li>
+      <li><a class="nav-link disabled"><i class="bi bi-file-earmark-text"></i><span>Custom Reports</span></a></li>
     </ul>
-
-    <!-- Bottom nav -->
     <ul class="sidebar__nav-bottom">
-      <li>
-        <a class="nav-link" href="/auth/logout" onclick="sessionStorage.clear()">
-          <i class="bi bi-box-arrow-right"></i>
-          <span>Sign out</span>
-        </a>
-      </li>
+      <li><a class="nav-link" href="/auth/logout" onclick="sessionStorage.clear()"><i class="bi bi-box-arrow-right"></i><span>Sign out</span></a></li>
     </ul>
   </nav>
 
@@ -99,95 +475,81 @@
     <header class="topbar flex-shrink-0">
       <nav aria-label="breadcrumb">
         <ol class="breadcrumb mb-0">
-          <li class="breadcrumb-item">
-            <a href="/admin/dashboard">Home</a>
-          </li>
-          <li class="breadcrumb-item active" aria-current="page">Design Courses</li>
+          <li class="breadcrumb-item"><a href="/admin/dashboard">Home</a></li>
+          <li class="breadcrumb-item active">Design Courses</li>
         </ol>
       </nav>
-
       <div class="topbar__actions">
-        <button class="topbar__icon-btn" aria-label="Notifications">
-          <i class="bi bi-bell"></i>
-        </button>
+        <button class="topbar__icon-btn"><i class="bi bi-bell"></i></button>
         <div class="dropdown">
-          <button class="topbar-user-btn dropdown-toggle" data-bs-toggle="dropdown"
-                  aria-expanded="false" id="topbarUserBtn">
+          <button class="topbar-user-btn dropdown-toggle" data-bs-toggle="dropdown">
             <span class="topbar-avatar" id="topbarAvatar">A</span>
             <span id="topbarName">Admin</span>
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
             <li><h6 class="dropdown-header">Super Admin</h6></li>
-            <li><a class="dropdown-item disabled"><i class="bi bi-people me-2 text-muted"></i>Users</a></li>
-            <li><a class="dropdown-item disabled"><i class="bi bi-shield-lock me-2 text-muted"></i>Roles &amp; Permissions</a></li>
-            <li><a class="dropdown-item disabled"><i class="bi bi-building-gear me-2 text-muted"></i>Organizations</a></li>
-            <li><a class="dropdown-item disabled"><i class="bi bi-gear me-2 text-muted"></i>System Settings</a></li>
-            <li><a class="dropdown-item disabled"><i class="bi bi-journal-text me-2 text-muted"></i>Audit Logs</a></li>
+            <li><a class="dropdown-item disabled"><i class="bi bi-people me-2"></i>Users</a></li>
+            <li><a class="dropdown-item disabled"><i class="bi bi-shield-lock me-2"></i>Roles & Permissions</a></li>
+            <li><a class="dropdown-item disabled"><i class="bi bi-building-gear me-2"></i>Organizations</a></li>
+            <li><a class="dropdown-item disabled"><i class="bi bi-gear me-2"></i>System Settings</a></li>
+            <li><a class="dropdown-item disabled"><i class="bi bi-journal-text me-2"></i>Audit Logs</a></li>
             <li><hr class="dropdown-divider"></li>
-            <li>
-              <a class="dropdown-item" href="/auth/logout" onclick="sessionStorage.clear()">
-                <i class="bi bi-box-arrow-right me-2 text-muted"></i>Sign out
-              </a>
-            </li>
+            <li><a class="dropdown-item" href="/auth/logout" onclick="sessionStorage.clear()"><i class="bi bi-box-arrow-right me-2"></i>Sign out</a></li>
           </ul>
         </div>
       </div>
     </header>
 
     <!-- ── Split: Tree + Detail ──────────────────────────────────────────── -->
-    <div class="flex-grow-1 d-flex overflow-hidden"
-         style="background:#f8fafc; padding:.75rem; gap:.75rem;">
+    <div class="flex-grow-1 d-flex overflow-hidden" style="background: var(--bg-app); padding: 1rem; gap: 1rem;">
 
-      <!-- Tree Panel — card -->
-      <div id="treePanel" class="d-flex flex-column flex-shrink-0"
-           style="width:320px; min-width:240px; max-width:580px;
-                  background:#ffffff; border-radius:12px;
-                  box-shadow:0 1px 3px 0 rgba(0,0,0,.1),0 1px 2px -1px rgba(0,0,0,.08);
-                  overflow:hidden; border:1px solid #e2e8f0;">
+      <!-- Tree Panel -->
+      <div id="treePanel" class="d-flex flex-column flex-shrink-0" style="width: 340px; min-width: 280px; max-width: 600px; overflow: hidden;">
 
-        <!-- Card header -->
-        <div class="d-flex align-items-center justify-content-between flex-shrink-0"
-             style="padding:.75rem 1rem; border-bottom:1px solid #e2e8f0; background:#fff;">
-          <div class="d-flex align-items-center gap-2">
-            <div style="width:28px;height:28px;background:#eff6ff;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <i class="bi bi-diagram-3" style="color:#0d6efd;font-size:.8rem;"></i>
-            </div>
-            <span style="font-size:.875rem;font-weight:700;color:#1a2332;">Course Tree</span>
+        <!-- Tree Header -->
+        <div class="tree-header">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <h2 class="tree-title">
+              <i class="bi bi-diagram-3"></i>
+              Course Explorer
+            </h2>
+            <button class="btn btn-sm btn-primary-gradient" id="addRootBtn">
+              <i class="bi bi-plus me-1"></i>Add Course
+            </button>
           </div>
-          <button class="btn btn-primary btn-sm" id="addRootBtn"
-                  aria-label="Add root course"
-                  style="font-size:.8rem;padding:.25rem .625rem;border-radius:7px;">
-            <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add Course
-          </button>
+          <div>
+            <span class="node-count" id="nodeCountBadge">0 Nodes</span>
+          </div>
         </div>
 
-        <!-- Tree container — scrollable body -->
-        <div id="courseTree" role="tree" aria-label="Course tree"
-             class="flex-grow-1 overflow-auto" style="padding:.625rem .75rem;"></div>
+        <!-- Search -->
+        <div class="tree-search">
+          <input type="text" id="treeSearchInput" class="form-control-modern"
+                 placeholder="Search courses, topics..."
+                 style="width: 100%; padding-left: 2rem;">
+        </div>
+
+        <!-- Tree Container -->
+        <div id="courseTree" role="tree" class="flex-grow-1 overflow-auto"
+             style="padding: 0.75rem; border-bottom: 1px solid var(--border);"></div>
       </div>
 
-      <!-- Drag handle -->
-      <div id="dragHandle"
-           style="width:6px; cursor:col-resize; flex-shrink:0; background:transparent;"
-           role="separator" aria-orientation="vertical"
-           aria-label="Resize panels"></div>
+      <!-- Drag Handle -->
+      <div id="dragHandle" style="width: 6px; cursor: col-resize; flex-shrink: 0; background: transparent;"></div>
 
-      <!-- Detail Panel — card -->
-      <div id="detailPanel" class="flex-grow-1 overflow-auto"
-           style="background:#ffffff; border-radius:12px;
-                  box-shadow:0 1px 3px 0 rgba(0,0,0,.1),0 1px 2px -1px rgba(0,0,0,.08);
-                  padding:1.25rem 1.5rem; border:1px solid #e2e8f0;">
+      <!-- Detail Panel -->
+      <div id="detailPanel" class="flex-grow-1 overflow-auto">
 
-        <!-- Placeholder state -->
-        <div class="empty-state mt-4" id="detailPlaceholder">
-          <div class="empty-state__icon" style="background:#f1f5f9;">
-            <i class="bi bi-cursor" style="font-size:1.75rem;color:#94a3b8;" aria-hidden="true"></i>
+        <!-- Empty State -->
+        <div class="empty-state-premium" id="detailPlaceholder">
+          <div class="empty-state-icon">
+            <i class="bi bi-cursor"></i>
           </div>
-          <div class="empty-state__title">Nothing selected</div>
-          <p class="empty-state__sub">Select a node from the tree to view or edit its details.</p>
+          <h2 class="empty-state-title">No Node Selected</h2>
+          <p class="empty-state-subtitle">Select a course item from the explorer or create a new one to begin editing.</p>
         </div>
 
-        <!-- Dynamic detail form injected by tree.js -->
+        <!-- Detail Form (injected by tree.js) -->
         <div id="detailForm" class="d-none"></div>
       </div>
 
@@ -196,74 +558,49 @@
 </div>
 
 <!-- ── Context Menu ──────────────────────────────────────────────────────────── -->
-<ul class="dropdown-menu shadow-sm" id="treeContextMenu"
-    style="display:none; position:fixed; z-index:9999; min-width:180px;" role="menu">
-  <li role="none">
-    <a class="dropdown-item d-flex align-items-center gap-2"
-       id="ctxAddNode" href="#" role="menuitem">
-      <i class="bi bi-folder-plus text-primary" aria-hidden="true"></i>
-      <span>Add Node</span>
-    </a>
-  </li>
-  <li role="none">
-    <a class="dropdown-item d-flex align-items-center gap-2"
-       id="ctxAddQuestion" href="#" role="menuitem">
-      <i class="bi bi-patch-question text-warning" aria-hidden="true"></i>
-      <span>Add Question</span>
-    </a>
-  </li>
+<ul class="dropdown-menu shadow-sm" id="treeContextMenu" style="display:none; position:fixed; z-index:9999;">
+  <li><a class="dropdown-item" id="ctxAddNode" href="#"><i class="bi bi-folder-plus me-2"></i>Add Node</a></li>
+  <li><a class="dropdown-item" id="ctxAddQuestion" href="#"><i class="bi bi-patch-question me-2"></i>Add Question</a></li>
 </ul>
 
 <!-- ── Add Node Modal ────────────────────────────────────────────────────────── -->
-<div class="modal fade" id="addNodeModal" tabindex="-1"
-     aria-labelledby="addNodeModalTitle" aria-hidden="true">
+<div class="modal fade" id="addNodeModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
-    <div class="modal-content">
+    <div class="modal-content" style="border-radius:16px; border:1px solid var(--border);">
 
-      <div class="modal-header border-0 pb-0">
+      <div class="modal-header border-0 pb-0" style="padding:1.5rem 1.5rem 0;">
         <div class="d-flex align-items-center gap-2">
-          <div style="width:36px; height:36px; background:#e8f0fe; border-radius:8px;
-                      display:flex; align-items:center; justify-content:center;">
-            <i class="bi bi-folder-plus text-primary"></i>
+          <div style="width:40px; height:40px; background:var(--primary-light); border-radius:10px; display:flex; align-items:center; justify-content:center;">
+            <i class="bi bi-folder-plus" style="color:var(--primary); font-size:1.1rem;"></i>
           </div>
-          <h5 class="modal-title fw-bold mb-0" id="addNodeModalTitle">Add Node</h5>
+          <h5 class="modal-title fw-bold mb-0">Add Node</h5>
         </div>
-        <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"
-                aria-label="Close"></button>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"></button>
       </div>
 
       <div class="modal-body pt-3">
-
-        <!-- Node Name -->
         <div class="mb-3">
-          <label class="form-label" for="newNodeTitle">
-            Node Name <span class="text-danger" aria-hidden="true">*</span>
-          </label>
-          <input type="text" class="form-control" id="newNodeTitle"
-                 maxlength="150" required
+          <label class="form-label fw-600">Node Name <span class="text-danger">*</span></label>
+          <input type="text" class="form-control-modern" id="newNodeTitle" maxlength="150"
                  placeholder="e.g. Introduction to Algebra"/>
-          <div class="form-text">Maximum 150 characters. Use a clear, descriptive name.</div>
+          <div class="form-text">Max 150 characters. Use a clear, descriptive name.</div>
         </div>
 
-        <!-- Description -->
         <div class="mb-3">
-          <label class="form-label" for="newNodeDesc">Description</label>
-          <textarea class="form-control" id="newNodeDesc" rows="3" maxlength="500"
-                    placeholder="Optional — briefly describe what this node covers."
-                    oninput="document.getElementById('newNodeDescCount').textContent = this.value.length"></textarea>
+          <label class="form-label fw-600">Description</label>
+          <textarea class="form-control-modern" id="newNodeDesc" rows="3" maxlength="500"
+                    placeholder="Briefly describe what this node covers."></textarea>
           <div class="d-flex justify-content-between mt-1">
             <div class="form-text">Describe the purpose of this node.</div>
-            <span class="char-counter"><span id="newNodeDescCount">0</span> / 500</span>
+            <span class="form-text"><span id="newNodeDescCount">0</span> / 500</span>
           </div>
         </div>
 
-        <!-- Tag Line -->
         <div class="mb-1">
-          <label class="form-label" for="newNodeTagLine">Tag Line</label>
-          <input type="text" class="form-control" id="newNodeTagLine"
-                 maxlength="100"
+          <label class="form-label fw-600">Tag Line</label>
+          <input type="text" class="form-control-modern" id="newNodeTagLine" maxlength="100"
                  placeholder="e.g. Master the fundamentals"/>
-          <div class="form-text">Short hook shown in course listings. Max 100 characters.</div>
+          <div class="form-text">Short hook shown in listings. Max 100 characters.</div>
         </div>
 
         <input type="hidden" id="newNodeType"/>
@@ -271,47 +608,38 @@
       </div>
 
       <div class="modal-footer border-0 pt-2">
-        <button type="button" class="btn btn-outline-secondary"
-                data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary fw-semibold px-4" id="saveNewNodeBtn">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary-gradient" id="saveNewNodeBtn">
           <i class="bi bi-folder-plus me-1"></i>Add Node
         </button>
       </div>
-
     </div>
   </div>
 </div>
 
 <!-- ── Add Question Modal ─────────────────────────────────────────────────────── -->
-<div class="modal fade" id="addQuestionModal" tabindex="-1"
-     aria-labelledby="addQuestionModalTitle" aria-hidden="true">
+<div class="modal fade" id="addQuestionModal" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content">
+    <div class="modal-content" style="border-radius:16px; border:1px solid var(--border);">
 
-      <div class="modal-header border-0 pb-0">
+      <div class="modal-header border-0 pb-0" style="padding:1.5rem 1.5rem 0;">
         <div class="d-flex align-items-center gap-2">
-          <div style="width:36px; height:36px; background:#fef9ec; border-radius:8px;
-                      display:flex; align-items:center; justify-content:center;">
-            <i class="bi bi-patch-question-fill text-warning"></i>
+          <div style="width:40px; height:40px; background:#FEF3C7; border-radius:10px; display:flex; align-items:center; justify-content:center;">
+            <i class="bi bi-patch-question-fill" style="color:#D97706; font-size:1.1rem;"></i>
           </div>
-          <h5 class="modal-title fw-bold mb-0" id="addQuestionModalTitle">Add Question</h5>
+          <h5 class="modal-title fw-bold mb-0">Add Question</h5>
         </div>
-        <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"
-                aria-label="Close"></button>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"></button>
       </div>
 
       <div class="modal-body pt-3">
-
-        <!-- Row: Question Type + Complexity -->
         <div class="row g-3 mb-3">
-
-          <!-- Question Type -->
           <div class="col-md-5">
-            <label class="form-label" for="aqType">Question Type</label>
-            <select class="form-select" id="aqType">
-              <option value="">— Select type —</option>
-              <option value="MCQ_SINGLE">Multiple Choice — Single Answer</option>
-              <option value="MCQ_MULTIPLE">Multiple Choice — Multiple Answers</option>
+            <label class="form-label fw-600">Question Type</label>
+            <select class="form-select form-control-modern" id="aqType">
+              <option value="">Select type</option>
+              <option value="MCQ_SINGLE">MCQ — Single Answer</option>
+              <option value="MCQ_MULTIPLE">MCQ — Multiple Answers</option>
               <option value="TRUE_FALSE">True / False</option>
               <option value="SHORT_ANSWER">Short Answer</option>
               <option value="ESSAY">Essay</option>
@@ -319,70 +647,45 @@
               <option value="IMAGE_BASED">Image Based</option>
             </select>
           </div>
-
-          <!-- Complexity -->
           <div class="col-md-7">
-            <label class="form-label d-block">Complexity</label>
-            <div class="complexity-group" role="group" aria-label="Complexity level">
-
-              <input type="radio" class="complexity-radio foundation"
-                     name="aqComplexity" id="aqComplexityF" value="FOUNDATION" checked/>
-              <label class="complexity-label" for="aqComplexityF">
-                Foundation
-              </label>
-
-              <input type="radio" class="complexity-radio intermediate"
-                     name="aqComplexity" id="aqComplexityI" value="INTERMEDIATE"/>
-              <label class="complexity-label" for="aqComplexityI">
-                Intermediate
-              </label>
-
-              <input type="radio" class="complexity-radio higher"
-                     name="aqComplexity" id="aqComplexityH" value="HIGHER"/>
-              <label class="complexity-label" for="aqComplexityH">
-                Higher
-              </label>
-
+            <label class="form-label fw-600 d-block">Complexity</label>
+            <div class="complexity-group" role="group">
+              <input type="radio" name="aqComplexity" id="aqComplexityF" value="FOUNDATION" checked/>
+              <label class="complexity-label" for="aqComplexityF">Foundation</label>
+              <input type="radio" name="aqComplexity" id="aqComplexityI" value="INTERMEDIATE"/>
+              <label class="complexity-label" for="aqComplexityI">Intermediate</label>
+              <input type="radio" name="aqComplexity" id="aqComplexityH" value="HIGHER"/>
+              <label class="complexity-label" for="aqComplexityH">Higher</label>
             </div>
           </div>
         </div>
 
-        <!-- Question Text -->
         <div class="mb-3">
-          <label class="form-label" for="aqText">Question Text</label>
-          <textarea class="form-control" id="aqText" rows="4"
-                    placeholder="Enter the full question wording as shown to the student…"></textarea>
+          <label class="form-label fw-600">Question Text</label>
+          <textarea class="form-control-modern" id="aqText" rows="4"
+                    placeholder="Enter the full question wording…"></textarea>
         </div>
 
-        <!-- Type-specific fields (populated by JS) -->
-        <div id="qTypeFields"
-             class="p-3 rounded-3"
-             style="background:var(--bg-app); border:1px dashed var(--border);
-                    min-height:60px; font-size:0.875rem; color:var(--text-muted);">
-          Select a question type above to configure its options.
+        <div id="qTypeFields" class="p-3 rounded-3"
+             style="background:var(--primary-light); border:1px dashed var(--border); min-height:60px; font-size:0.875rem; color:var(--text-muted);">
+          Select a question type to configure options.
         </div>
 
-        <!-- Hidden: parent node id -->
         <input type="hidden" id="qParentNodeId"/>
-
       </div>
 
       <div class="modal-footer border-0 pt-2">
-        <button type="button" class="btn btn-outline-secondary"
-                data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-warning fw-semibold px-4 text-white" id="saveNewQuestionBtn">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary-gradient" id="saveNewQuestionBtn">
           <i class="bi bi-patch-question-fill me-1"></i>Add Question
         </button>
       </div>
-
     </div>
   </div>
 </div>
 
-<!-- ── Toast container ───────────────────────────────────────────────────────── -->
-<div id="toastContainer"
-     class="toast-container position-fixed bottom-0 end-0 p-3"
-     style="z-index:9999;" aria-live="polite"></div>
+<!-- ── Toast Container ───────────────────────────────────────────────────────── -->
+<div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999;"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
