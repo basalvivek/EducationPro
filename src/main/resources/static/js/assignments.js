@@ -29,8 +29,10 @@ function escHtml(s) {
 // ── State ──────────────────────────────────────────────────────────────────────
 var S = {
   nodes:            [],
-  students:         [],
-  teachers:         [],
+  allStudents:      [],   // All students from API
+  allTeachers:      [],   // All teachers from API
+  students:         [],   // Filtered by selected course
+  teachers:         [],   // Filtered by selected course
   selectedCourseId: null,
   maxPerGroup:      30,
   groups:           [],   // {id, name, desc, period, studentIds:[]}
@@ -71,6 +73,8 @@ document.addEventListener('DOMContentLoaded', function () {
     })
   ]).then(function (results) {
     S.nodes    = results[0];
+    S.allStudents = results[1];
+    S.allTeachers = results[2];
     S.students = results[1];
     S.teachers = results[2];
     populateCourseDropdown();
@@ -111,7 +115,13 @@ function onCourseChange() {
     card3.classList.add('card-locked');
     S.scopeNodes = { course: null, subject: null, board: null };
     S.selectedScopeKey = null;
+    S.groups = [];
+    S.assignments = [];
+    S.activatedTeacherIds = [];
     updateCard2ScopeDisplay();
+    renderGroups();
+    renderTeachers();
+    updateSummary();
     return;
   }
 
