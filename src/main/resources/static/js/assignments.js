@@ -412,6 +412,10 @@ function renderTeachers() {
     return S.activatedTeacherIds.indexOf(t.id) !== -1;
   });
 
+  console.log('renderTeachers: activatedTeacherIds =', S.activatedTeacherIds);
+  console.log('renderTeachers: active teachers =', active.map(function (t) { return {id: t.id, name: t.firstName + ' ' + t.lastName}; }));
+  console.log('renderTeachers: total active =', active.length);
+
   if (!active.length) {
     tbody.innerHTML =
       '<tr><td colspan="3" class="text-center text-muted py-5 small">' +
@@ -802,12 +806,19 @@ function renderAgPairs() {
 function saveAssignGroups() {
   if (!agPairs.length) { showToast('Add at least one assignment', 'warning'); return; }
 
+  console.log('Saving pairs:', agPairs);
+  console.log('Before: activatedTeacherIds =', S.activatedTeacherIds);
+  console.log('Before: assignments =', S.assignments);
+
   agPairs.forEach(function (pair) {
     S.assignments[pair.teacherId] = pair.groupId;
     if (S.activatedTeacherIds.indexOf(pair.teacherId) === -1) {
       S.activatedTeacherIds.push(pair.teacherId);
     }
   });
+
+  console.log('After: activatedTeacherIds =', S.activatedTeacherIds);
+  console.log('After: assignments =', S.assignments);
 
   bootstrap.Modal.getInstance(document.getElementById('assignGroupModal')).hide();
   renderTeachers();
