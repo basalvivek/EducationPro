@@ -39,17 +39,17 @@ public class ScheduleService {
         }
 
         ClassSchedule schedule = buildScheduleEntity(req);
-        schedule = scheduleRepository.save(schedule);
+        final ClassSchedule savedSchedule = scheduleRepository.save(schedule);
 
         if (DateMode.RECURRING.equals(req.dateMode()) && req.recurrence() != null) {
-            ScheduleRecurrence recurrence = buildRecurrenceEntity(req.recurrence(), schedule);
+            ScheduleRecurrence recurrence = buildRecurrenceEntity(req.recurrence(), savedSchedule);
             recurrenceRepository.save(recurrence);
-            schedule.setRecurrence(recurrence);
+            savedSchedule.setRecurrence(recurrence);
 
-            List<LocalDate> occurrences = generateOccurrences(schedule, recurrence);
+            List<LocalDate> occurrences = generateOccurrences(savedSchedule, recurrence);
             List<ScheduleOccurrence> occurrenceEntities = occurrences.stream()
                     .map(date -> ScheduleOccurrence.builder()
-                            .schedule(schedule)
+                            .schedule(savedSchedule)
                             .occurrenceDate(date)
                             .startTime(req.startTime())
                             .endTime(req.endTime())
@@ -64,7 +64,7 @@ public class ScheduleService {
         } else if (DateMode.MULTIPLE.equals(req.dateMode()) && req.multipleDates() != null) {
             List<ScheduleOccurrence> occurrenceEntities = req.multipleDates().stream()
                     .map(date -> ScheduleOccurrence.builder()
-                            .schedule(schedule)
+                            .schedule(savedSchedule)
                             .occurrenceDate(date)
                             .startTime(req.startTime())
                             .endTime(req.endTime())
@@ -78,12 +78,12 @@ public class ScheduleService {
 
         List<ConflictSummaryDto> conflicts = detectConflicts(req);
         if (!conflicts.isEmpty()) {
-            schedule.setStatus(ScheduleStatus.DRAFT);
-            scheduleRepository.save(schedule);
+            savedSchedule.setStatus(ScheduleStatus.DRAFT);
+            scheduleRepository.save(savedSchedule);
 
             for (ConflictSummaryDto conflict : conflicts) {
                 ScheduleConflict conflictEntity = ScheduleConflict.builder()
-                        .schedule(schedule)
+                        .schedule(savedSchedule)
                         .conflictType(conflict.conflictType())
                         .conflictDescription(conflict.message())
                         .severity("WARNING")
@@ -93,11 +93,11 @@ public class ScheduleService {
                 conflictRepository.save(conflictEntity);
             }
         } else {
-            schedule.setStatus(ScheduleStatus.ACTIVE);
-            scheduleRepository.save(schedule);
+            savedSchedule.setStatus(ScheduleStatus.ACTIVE);
+            scheduleRepository.save(savedSchedule);
         }
 
-        return mapToResponseDto(schedule);
+        return mapToResponseDto(savedSchedule);
     }
 
     public ScheduleResponseDto getSchedule(Long id) {
@@ -116,24 +116,24 @@ public class ScheduleService {
         }
 
         updateScheduleEntity(schedule, req);
-        schedule = scheduleRepository.save(schedule);
+        final ClassSchedule updatedSchedule = scheduleRepository.save(schedule);
 
         if (DateMode.RECURRING.equals(req.dateMode())) {
-            occurrenceRepository.deleteByScheduleId(schedule.getId());
+            occurrenceRepository.deleteByScheduleId(updatedSchedule.getId());
             if (req.recurrence() != null) {
-                ScheduleRecurrence recurrence = schedule.getRecurrence();
+                ScheduleRecurrence recurrence = updatedSchedule.getRecurrence();
                 if (recurrence == null) {
                     recurrence = new ScheduleRecurrence();
-                    schedule.setRecurrence(recurrence);
+                    updatedSchedule.setRecurrence(recurrence);
                 }
                 updateRecurrenceEntity(recurrence, req.recurrence());
-                recurrence.setSchedule(schedule);
+                recurrence.setSchedule(updatedSchedule);
                 recurrenceRepository.save(recurrence);
 
-                List<LocalDate> occurrences = generateOccurrences(schedule, recurrence);
+                List<LocalDate> occurrences = generateOccurrences(updatedSchedule, recurrence);
                 List<ScheduleOccurrence> occurrenceEntities = occurrences.stream()
                         .map(date -> ScheduleOccurrence.builder()
-                                .schedule(schedule)
+                                .schedule(updatedSchedule)
                                 .occurrenceDate(date)
                                 .startTime(req.startTime())
                                 .endTime(req.endTime())
