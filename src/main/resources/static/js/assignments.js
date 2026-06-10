@@ -362,9 +362,14 @@ function renderGroups() {
           '<div class="fw-semibold small">' + escHtml(g.name) + '</div>' +
           '<div class="text-muted" style="font-size:.72rem;">' + escHtml(g.period) + '</div>' +
         '</div>' +
-        '<span class="badge ' + (over ? 'bg-danger' : groupBadgeClass(color)) + '" style="' + groupBadgeStyle(color, over) + '">' +
-          students.length + '/' + S.maxPerGroup +
-        '</span>' +
+        '<div class="d-flex align-items-center gap-1">' +
+          '<span class="badge ' + (over ? 'bg-danger' : groupBadgeClass(color)) + '" style="' + groupBadgeStyle(color, over) + '">' +
+            students.length + '/' + S.maxPerGroup +
+          '</span>' +
+          '<button class="btn btn-xs btn-outline-primary" style="padding:.25rem .35rem;font-size:.65rem;" title="Edit" onclick="openEditGroupModal(' + g.id + ')">' +
+            '<i class="bi bi-pencil"></i>' +
+          '</button>' +
+        '</div>' +
       '</div>' +
       '<div class="progress mb-2" style="height:4px;">' +
         '<div class="progress-bar" style="width:' + Math.min(pct, 100) + '%;background:var(--group-' + color + ');"></div>' +
@@ -712,6 +717,70 @@ function deleteAssignment(teacherId) {
 
 function saveAsDraft()   { postSave('DRAFT', 'info',    'btnSaveDraft'); }
 function reviewAndSave() { postSave('SAVED', 'success', 'btnReviewSave'); }
+
+// ── Edit Group Modal ────────────────────────────────────────────────────────────
+var egGroupId = null;  // Group being edited
+var egStudents = [];   // Students in edited group
+
+function openEditGroupModal(groupId) {
+  var group = S.groups.find(function (g) { return g.id === groupId; });
+  if (!group) return;
+
+  egGroupId = groupId;
+  egStudents = group.studentIds.slice();  // Copy array
+
+  document.getElementById('egGroupName').value = group.name;
+  document.getElementById('egStudentSearch').value = '';
+  renderEditGroupStudents('');
+
+  new bootstrap.Modal(document.getElementById('editGroupModal')).show();
+}
+
+function renderEditGroupStudents(search) {
+  var list = document.getElementById('egStudentCheckList');
+  var filtered = S.students.filter(function (s) {
+    if (!search) return true;
+    return (s.firstName + ' ' + s.lastName).toLowerCase().indexOf(search.toLowerCase()) !== -1;
+  });
+
+  list.innerHTML = '';
+  filtered.forEach(function (s) {
+    var initials = ((s.firstName || '?')[0] + (s.lastName || '?')[0]).toUpperCase();
+    var isChecked = egStudents.indexOf(s.id) !== -1;
+    var div = document.createElement('div');
+    div.className = 'student-check-row d-flex align-items-center gap-2 py-2 px-2 rounded';
+    div.innerHTML =
+      '<input class="form-check-input flex-shrink-0" type="checkbox" value="' + s.id + '" ' +
+        'id="egs_' + s.id + '"' + (isChecked ? ' checked' : '') + ' onchange="onEditGroupStudentCheck()">' +
+      '<div class="student-avatar-sm flex-shrink-0">' + escHtml(initials) + '</div>' +
+      '<div class="flex-grow-1 min-width-0">' +
+        '<div class="fw-medium small text-truncate">' + escHtml(s.firstName) + ' ' + escHtml(s.lastName) + '</div>' +
+        '<div class="text-muted" style="font-size:.72rem;">' + escHtml(s.gradeYear || '') + (s.className ? ' · ' + escHtml(s.className) : '') + '</div>' +
+      '</div>' +
+      '<span class="badge bg-light text-dark border flex-shrink-0" style="font-size:.7rem;">' + escHtml(s.studentId || '') + '</span>';
+    list.appendChild(div);
+  });
+
+  onEditGroupStudentCheck();
+}
+
+function onEditGroupStudentCheck() {
+  var checked = Array.from(document.querySelectorAll('#egStudentCheckList input[type=checkbox]:checked'))
+    .map(function (cb) { return parseInt(cb.value, 10); });
+  egStudents = checked;
+  document.getElementById('egSelCount').textContent = checked.length;
+}
+
+function saveGroupEdit() {
+  var group = S.groups.find(function (g) { return g.id === egGroupId; });
+  if (!group) return;
+
+  group.studentIds = egStudents.slice();
+  bootstrap.Modal.getInstance(document.getElementById('editGroupModal')).hide();
+  renderGroups();
+  updateSummary();
+  showToast('Group updated with ' + egStudents.length + ' student(s)', 'success');
+}
 
 // ── Assign Group Modal ──────────────────────────────────────────────────────────
 var agPairs = [];  // {teacherId, groupId}
