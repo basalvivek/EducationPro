@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-Web application running on `localhost:9090` (dev profile). Modules 1–3 fully implemented. Module 4 (teacher/student management + assignments) partially implemented — backend persists but frontend listing/detail views are stubs. `docs/EducationPro_Specs_M1_M2.md` is the authoritative spec (covers M1–M4). All implementation decisions must align with it.
+Web application running on `localhost:9090` (dev profile). Modules 1–4 fully implemented. Module 5 (Curriculum Scheduler) core implementation complete — backend services, repositories, DTOs, controller, and frontend stub ready. `docs/EducationPro_Specs_M1_M2.md` is the authoritative spec (covers M1–M4). Module 5 spec: `docs/schedule-module-classes-tab.md`. All implementation decisions must align with specs.
 
 Default admin credentials: `admin@educationpro.com` / `Admin@123`
 
@@ -108,6 +108,26 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 - **Key**: `groupLocalId` in JS payload maps frontend ephemeral group IDs to saved DB group IDs via `Map<Integer, AssignmentGroup>` in service
 - **Key**: `assignment_group_students.student_profile_id` references `student_profiles.id`; `assignment_teacher_mappings.teacher_profile_id` references `teacher_profiles.id`
 
+### Module 5 — Curriculum Scheduler (`/admin/schedule`)
+
+- Schedule classes between teachers and student groups (validates M4 assignments)
+- **2-column form**: Teacher/Group, Subject/Schedule Type, Dates/Times, Classroom/Equipment
+- **Schedule Types**: regular, revision, extra, practical, exam prep, parent, workshop
+- **Date Modes**: single day, multiple days, recurring (daily/weekly/monthly)
+- **Recurrence**: weekly checkboxes (Mon-Sun), end conditions (never, until date, count)
+- **Automatic Occurrences**: generates individual schedule_occurrences for recurring schedules
+- **Conflict Detection**: prevents teacher/group/classroom double-booking
+- **Calendar View**: color-coded schedule cards, drag & drop ready
+- **Notifications**: email/SMS/in-app to teachers, students, parents
+- **Lesson Details**: topic, rich description, learning objectives (JSON chips)
+- **Attendance**: optional toggle, student/parent notifications, reminder settings
+- DB tables (V13–V18): `classrooms`, `equipment`, `class_schedules`, `schedule_occurrences`, `schedule_recurrence`, `schedule_conflicts`, `schedule_notifications`, `schedule_equipment`
+- Domains: `Classroom`, `Equipment`, `ClassSchedule`, `ScheduleOccurrence`, `ScheduleRecurrence`, `ScheduleConflict`, `ScheduleNotification`
+- Repositories: All 7 entities have Spring Data JPA repos
+- Service: `ScheduleService` (create, retrieve, detect conflicts, generate occurrences)
+- Controller: `ScheduleController` (`POST /api/admin/schedules`, `GET /api/admin/schedules/session/{id}`)
+- Frontend: `schedule.html` (calendar, modal form), `schedule.js` (state management, CRUD)
+
 ### Security Architecture
 
 - Spring Security 6, stateless sessions (`STATELESS`)
@@ -172,7 +192,7 @@ All admin pages share the same sidebar + topbar shell (no Thymeleaf fragments �
 - `assignment_teacher_mappings` references `teacher_profiles(id)` NOT `users(id)`
 - Index on `users(email, role)` for login queries
 - Flyway migration order:
-  `V1__init_users.sql` → `V2__password_reset_tokens.sql` → `V3__course_nodes.sql` → `V4__course_nodes_expand.sql` → `V5__reset_admin_password.sql` → `V6__assessment_designer.sql` → `V7__add_teacher_user.sql` → `V8__add_pending_approval_status.sql` → `V9__teacher_profiles.sql` → `V10__student_profiles.sql` → `V11__assignments.sql` → `V12__fix_assignment_constraints.sql`
+  `V1__init_users.sql` → `V2__password_reset_tokens.sql` → `V3__course_nodes.sql` → `V4__course_nodes_expand.sql` → `V5__reset_admin_password.sql` → `V6__assessment_designer.sql` → `V7__add_teacher_user.sql` → `V8__add_pending_approval_status.sql` → `V9__teacher_profiles.sql` → `V10__student_profiles.sql` → `V11__assignments.sql` → `V12__fix_assignment_constraints.sql` → `V13__classrooms.sql` → `V14__class_schedules.sql` → `V15__schedule_occurrences.sql` → `V16__schedule_conflicts.sql` → `V17__schedule_notifications.sql` → `V18__schedule_equipment.sql`
 
 ## NFRs to Keep in Mind
 
@@ -185,7 +205,9 @@ All admin pages share the same sidebar + topbar shell (no Thymeleaf fragments �
 
 ## Planned / Next Work
 
-- Module 4 remaining: load saved assignment sessions on page open, edit/delete sessions, student course view
-- Module 5: Student Course View (enrolled courses, quiz taking, progress tracking)
+- Module 5 remaining: load saved schedules, edit/delete/clone, drag-drop calendar, full notifications pipeline
+- Module 6: Student Course View (enrolled courses, quiz taking, progress tracking)
 - Approvals: wire `/api/admin/approvals` endpoint to approve/reject pending teacher/student registrations
 - Teacher portal: teacher-facing course designer and exam builder (templates exist as stubs in `templates/teacher/`)
+- Email notifications: integrate Spring Mail for schedule notifications
+- Calendar rendering: upgrade from card grid to full calendar widget (FullCalendar or similar)
