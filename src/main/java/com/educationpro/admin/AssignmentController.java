@@ -1,6 +1,7 @@
 package com.educationpro.admin;
 
 import com.educationpro.admin.dto.AssignmentResultDto;
+import com.educationpro.admin.dto.AssignmentSessionDetailDto;
 import com.educationpro.admin.dto.SaveAssignmentRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,5 +22,12 @@ public class AssignmentController {
             @RequestBody SaveAssignmentRequest req,
             Authentication auth) {
         return ResponseEntity.status(201).body(service.save(req, auth.getName()));
+    }
+
+    @GetMapping("/latest")
+    public ResponseEntity<AssignmentSessionDetailDto> getLatest() {
+        return service.getLatestSession()
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.noContent().build());
     }
 }

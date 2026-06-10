@@ -136,8 +136,10 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
     const data = await res.json();
 
     if (res.ok) {
-      localStorage.setItem('ep_token', data.token);
-      window.location.href = data.redirectTo;
+      const payload = data.data;
+      localStorage.setItem('ep_token', payload.token);
+      sessionStorage.setItem('edu_name', payload.name || '');
+      window.location.href = payload.redirectTo;
     } else {
       alertEl.textContent = data.message || 'Login failed.';
       alertEl.classList.remove('d-none');

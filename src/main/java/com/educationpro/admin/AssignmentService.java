@@ -1,6 +1,7 @@
 package com.educationpro.admin;
 
 import com.educationpro.admin.dto.AssignmentResultDto;
+import com.educationpro.admin.dto.AssignmentSessionDetailDto;
 import com.educationpro.admin.dto.SaveAssignmentRequest;
 import com.educationpro.domain.*;
 import com.educationpro.repository.*;
@@ -10,7 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -71,5 +74,35 @@ public class AssignmentService {
             ? "Assignment saved successfully"
             : "Assignment saved as draft";
         return new AssignmentResultDto(session.getId(), session.getStatus(), msg);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<AssignmentSessionDetailDto> getLatestSession() {
+        return sessionRepo.findTopByOrderByIdDesc().map(session -> {
+            List<AssignmentGroup> groups = groupRepo.findBySession_Id(session.getId());
+            List<AssignmentTeacherMapping> mappings = mappingRepo.findBySession_Id(session.getId());
+
+            List<AssignmentSessionDetailDto.GroupDetail> groupDetails = groups.stream()
+                .map(g -> new AssignmentSessionDetailDto.GroupDetail(
+                    g.getId(), g.getName(), g.getDescription(), g.getPeriod(),
+                    g.getStudentProfileIds()))
+                .toList();
+
+            List<AssignmentSessionDetailDto.TeacherAssignmentDetail> teacherDetails = mappings.stream()
+                .map(m -> new AssignmentSessionDetailDto.TeacherAssignmentDetail(
+                    m.getTeacherProfileId(),
+                    m.getGroup() != null ? m.getGroup().getId() : null))
+                .toList();
+
+            return new AssignmentSessionDetailDto(
+                session.getId(),
+                session.getCourseNode().getId(),
+                session.getScopeNode() != null ? session.getScopeNode().getId() : null,
+                session.getScopeLevel(),
+                session.getMaxPerGroup(),
+                session.getStatus(),
+                groupDetails,
+                teacherDetails);
+        });
     }
 }

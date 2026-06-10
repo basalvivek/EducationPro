@@ -6,47 +6,610 @@
   <title>EducationPro — Assessment Designer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"/>
   <link rel="stylesheet" th:href="@{/css/main.css(v=3)}"/>
   <style>
-    .bg-purple  { background-color: #7c3aed !important; }
-    .text-purple { color: #7c3aed !important; }
+    /* ── Design tokens (page-scoped) ─────────────────────────────────────── */
+    :root {
+      --ep: #4F46E5;
+      --ep-light: #6366F1;
+      --ep-dim: rgba(79,70,229,.09);
+      --ep-cyan: #06B6D4;
+      --ep-green: #22C55E;
+      --ep-amber: #F59E0B;
+      --ep-red: #EF4444;
+      --ep-bg: #F1F5F9;
+      --ep-surf: #FFFFFF;
+      --ep-border: #E2E8F0;
+      --ep-text: #0F172A;
+      --ep-muted: #64748B;
+      --ep-r: 14px;
+      --ep-r-sm: 9px;
+      --ep-sh: 0 1px 3px rgba(0,0,0,.05),0 4px 16px rgba(0,0,0,.04);
+      --ep-sh-md: 0 4px 20px rgba(0,0,0,.09);
+    }
 
-    #pickerPanel {
-      width: 340px;
-      min-width: 280px;
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      background: #ffffff;
-      border-radius: 12px;
-      box-shadow: 0 1px 3px 0 rgba(0,0,0,.1), 0 1px 2px -1px rgba(0,0,0,.08);
-      border: 1px solid #e2e8f0;
+    /* ── Font override for this page ─────────────────────────────────────── */
+    .eb-root, .eb-root * {
+      font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
     }
-    #builderPanel {
+
+    /* ── Workspace shell ─────────────────────────────────────────────────── */
+    .eb-workspace-wrap {
       flex: 1 1 0;
+      min-height: 0;
+      overflow: hidden;
+      background: var(--ep-bg);
+      padding: 14px;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
-      background: #ffffff;
-      border-radius: 12px;
-      box-shadow: 0 1px 3px 0 rgba(0,0,0,.1), 0 1px 2px -1px rgba(0,0,0,.08);
-      border: 1px solid #e2e8f0;
+      gap: 12px;
     }
-    #examListPanel {
-      width: 260px;
-      min-width: 220px;
-      flex-shrink: 0;
+
+    .eb-workspace {
       display: flex;
-      flex-direction: column;
+      gap: 12px;
+      flex: 1 1 0;
+      min-height: 0;
+    }
+
+    /* ── Stats bar ───────────────────────────────────────────────────────── */
+    .eb-stats {
+      display: flex;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .eb-stat {
+      flex: 1;
+      background: var(--ep-surf);
+      border: 1px solid var(--ep-border);
+      border-radius: var(--ep-r-sm);
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: var(--ep-sh);
+      transition: box-shadow .18s, transform .18s;
+    }
+    .eb-stat:hover { box-shadow: var(--ep-sh-md); transform: translateY(-1px); }
+
+    .eb-stat__ico {
+      width: 34px; height: 34px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .9rem; flex-shrink: 0;
+    }
+    .eb-stat__ico--i { background: rgba(79,70,229,.1);  color: #4F46E5; }
+    .eb-stat__ico--c { background: rgba(6,182,212,.1);  color: #06B6D4; }
+    .eb-stat__ico--g { background: rgba(34,197,94,.1);  color: #22C55E; }
+    .eb-stat__ico--a { background: rgba(245,158,11,.1); color: #F59E0B; }
+
+    .eb-stat__val {
+      font-size: 1.2rem; font-weight: 800; color: var(--ep-text);
+      letter-spacing: -.5px; line-height: 1;
+    }
+    .eb-stat__lbl {
+      font-size: .65rem; font-weight: 700; color: var(--ep-muted);
+      text-transform: uppercase; letter-spacing: .4px; margin-top: 2px;
+    }
+
+    /* ── Panel base ──────────────────────────────────────────────────────── */
+    .eb-panel {
+      display: flex; flex-direction: column;
+      background: var(--ep-surf);
+      border: 1px solid var(--ep-border);
+      border-radius: var(--ep-r);
+      box-shadow: var(--ep-sh);
       overflow: hidden;
-      background: #ffffff;
-      border-radius: 12px;
-      box-shadow: 0 1px 3px 0 rgba(0,0,0,.1), 0 1px 2px -1px rgba(0,0,0,.08);
-      border: 1px solid #e2e8f0;
+      min-height: 0;
+    }
+
+    #pickerPanel  { width: 316px; min-width: 268px; flex-shrink: 0; }
+    #builderPanel { flex: 1 1 0; min-width: 0; }
+    #examListPanel{ width: 276px; min-width: 240px; flex-shrink: 0; }
+
+    /* ── Panel header ────────────────────────────────────────────────────── */
+    .ep-hdr {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--ep-border);
+      background: var(--ep-surf);
+      flex-shrink: 0;
+      display: flex; align-items: center; gap: 9px;
+    }
+
+    .ep-ico {
+      width: 28px; height: 28px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .8rem; flex-shrink: 0;
+    }
+    .ep-ico--i { background: rgba(79,70,229,.1);  color: #4F46E5; }
+    .ep-ico--g { background: rgba(34,197,94,.1);  color: #22C55E; }
+    .ep-ico--a { background: rgba(245,158,11,.1); color: #F59E0B; }
+    .ep-ico--c { background: rgba(6,182,212,.1);  color: #06B6D4; }
+
+    .ep-title {
+      font-size: .875rem; font-weight: 700; color: var(--ep-text); flex: 1;
+    }
+
+    /* ── Refresh / icon buttons ──────────────────────────────────────────── */
+    .eb-icon-btn {
+      width: 28px; height: 28px; border-radius: 7px;
+      border: 1.5px solid var(--ep-border);
+      background: transparent; color: var(--ep-muted);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .8rem; cursor: pointer; flex-shrink: 0;
+      transition: all .15s;
+    }
+    .eb-icon-btn:hover { background: #f1f5f9; border-color: #94a3b8; color: var(--ep-text); }
+
+    /* ── Filter area (Question Bank) ─────────────────────────────────────── */
+    .qb-filters {
+      padding: 11px 13px;
+      border-bottom: 1px solid var(--ep-border);
+      flex-shrink: 0;
+      display: flex; flex-direction: column; gap: 8px;
+      overflow-y: auto;
+      max-height: 340px;
+    }
+
+    .qf-row { display: flex; flex-direction: column; gap: 3px; }
+
+    .qf-lbl {
+      font-size: .62rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .55px;
+      color: var(--ep-muted);
+    }
+
+    .qf-select {
+      width: 100%; padding: 6px 28px 6px 9px;
+      border: 1.5px solid var(--ep-border); border-radius: 7px;
+      font-size: .8rem; font-weight: 500; color: var(--ep-text);
+      background: #fff; outline: none; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2364748B' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 9px center;
+      transition: border-color .15s;
+      font-family: inherit;
+    }
+    .qf-select:focus { border-color: var(--ep); box-shadow: 0 0 0 3px rgba(79,70,229,.12); }
+    .qf-select:disabled { opacity: .42; cursor: not-allowed; background-color: #f8fafc; }
+
+    /* Complexity chips */
+    .cplx-row { display: flex; gap: 4px; flex-wrap: wrap; }
+
+    .cplx-chip {
+      padding: 3px 9px; border-radius: 20px;
+      font-size: .7rem; font-weight: 600;
+      border: 1.5px solid var(--ep-border);
+      background: transparent; color: var(--ep-muted);
+      cursor: pointer; transition: all .14s; font-family: inherit;
+    }
+    .cplx-chip:hover { border-color: #94a3b8; color: var(--ep-text); }
+    .cplx-chip.cp-all   { background: #f1f5f9; border-color: #94a3b8; color: var(--ep-text); }
+    .cplx-chip.cp-found { background: #dcfce7; border-color: #22C55E; color: #15803d; }
+    .cplx-chip.cp-inter { background: rgba(79,70,229,.1); border-color: var(--ep); color: var(--ep); }
+    .cplx-chip.cp-high  { background: #fef9c3; border-color: #F59E0B; color: #92400e; }
+
+    /* Apply button */
+    .btn-apply {
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+      width: 100%; padding: 8px 14px;
+      background: linear-gradient(135deg, var(--ep) 0%, var(--ep-light) 100%);
+      color: #fff; border: none; border-radius: 8px;
+      font-size: .8rem; font-weight: 700; cursor: pointer;
+      box-shadow: 0 2px 10px rgba(79,70,229,.3);
+      transition: all .18s; font-family: inherit; letter-spacing: .1px;
+    }
+    .btn-apply:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(79,70,229,.4); }
+
+    /* ── Picker item (JS-generated, styled via class override) ──────────── */
+    #questionPickerList {
+      flex: 1 1 0; overflow-y: auto; background: #f8fafc; padding: 6px;
+    }
+
+    .picker-item {
+      padding: 9px 11px !important;
+      margin-bottom: 5px;
+      border-bottom: none !important;
+      border: 1px solid var(--ep-border) !important;
+      border-left: 3px solid transparent !important;
+      border-radius: 9px !important;
+      background: #fff !important;
+      display: flex !important;
+      align-items: flex-start !important;
+      gap: 9px !important;
+      transition: all .14s !important;
+    }
+    .picker-item:last-child { border-bottom: 1px solid var(--ep-border) !important; }
+    .picker-item:hover {
+      border-left-color: var(--ep) !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06) !important;
+      background: #fafbff !important;
+    }
+
+    .picker-item__title {
+      font-size: .8rem !important;
+      font-weight: 700 !important;
+      color: var(--ep-text) !important;
+    }
+
+    .picker-item__preview {
+      font-size: .71rem !important;
+      color: var(--ep-muted) !important;
+      margin-top: 2px !important;
+    }
+
+    .picker-item__tags { margin-top: 5px !important; gap: 3px !important; }
+    .picker-item__tags .badge {
+      font-size: .63rem !important; padding: 2px 6px !important;
+      border-radius: 20px !important; font-weight: 600 !important;
+    }
+
+    /* Add-to-exam button */
+    .add-q-btn {
+      width: 27px !important; height: 27px !important;
+      border-radius: 7px !important; padding: 0 !important;
+      display: inline-flex !important; align-items: center !important;
+      justify-content: center !important; font-size: .85rem !important;
+      flex-shrink: 0 !important; transition: all .14s !important;
+    }
+    .add-q-btn.btn-outline-primary {
+      background: transparent !important;
+      border: 1.5px solid var(--ep-border) !important;
+      color: var(--ep-muted) !important;
+    }
+    .add-q-btn.btn-outline-primary:hover {
+      background: var(--ep) !important;
+      border-color: var(--ep) !important;
+      color: #fff !important;
+      box-shadow: 0 2px 8px rgba(79,70,229,.35) !important;
+    }
+    .add-q-btn.btn-secondary {
+      background: #f0fdf4 !important;
+      border: 1.5px solid #22C55E !important;
+      color: #22C55E !important; cursor: default !important;
+    }
+
+    /* ── Builder toolbar ─────────────────────────────────────────────────── */
+    .eb-toolbar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--ep-border);
+      background: #fff; flex-shrink: 0; flex-wrap: wrap;
+    }
+
+    .eb-toolbar__exam-select {
+      padding: 6px 28px 6px 10px;
+      border: 1.5px solid var(--ep-border); border-radius: 8px;
+      font-size: .8125rem; font-weight: 500; color: var(--ep-text);
+      background: #fff; outline: none; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2364748B' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 9px center;
+      max-width: 220px; transition: border-color .15s; font-family: inherit;
+    }
+    .eb-toolbar__exam-select:focus { border-color: var(--ep); box-shadow: 0 0 0 3px rgba(79,70,229,.12); }
+
+    .btn-new-exam {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 6px 13px;
+      background: var(--ep); color: #fff;
+      border: none; border-radius: 8px;
+      font-size: .8125rem; font-weight: 700;
+      cursor: pointer; transition: all .15s; white-space: nowrap; font-family: inherit;
+    }
+    .btn-new-exam:hover { background: #4338CA; transform: translateY(-1px); box-shadow: 0 3px 10px rgba(79,70,229,.35); }
+
+    .btn-del-exam {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 6px 12px; margin-left: auto;
+      background: transparent; color: var(--ep-muted);
+      border: 1.5px solid var(--ep-border); border-radius: 8px;
+      font-size: .8125rem; cursor: pointer; transition: all .15s; font-family: inherit;
+    }
+    .btn-del-exam:hover:not(:disabled) { background: #fef2f2; border-color: #fca5a5; color: #ef4444; }
+    .btn-del-exam:disabled { opacity: .35; cursor: not-allowed; }
+
+    /* ── Builder scroll area ─────────────────────────────────────────────── */
+    .eb-scroll {
+      flex: 1 1 0; overflow-y: auto;
+      padding: 14px; background: var(--ep-bg);
+      display: flex; flex-direction: column; gap: 12px;
+    }
+
+    /* ── Exam Settings card ──────────────────────────────────────────────── */
+    .es-card {
+      background: #fff;
+      border: 1px solid var(--ep-border);
+      border-radius: var(--ep-r);
+      box-shadow: var(--ep-sh);
+      overflow: hidden;
+    }
+
+    .es-card__hdr {
+      padding: 12px 14px 10px;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .es-card__hdr-title { font-size: .875rem; font-weight: 700; color: var(--ep-text); }
+
+    .es-card__body { padding: 14px 16px; }
+
+    .es-field { display: flex; flex-direction: column; gap: 3px; margin-bottom: 11px; }
+    .es-field:last-child { margin-bottom: 0; }
+
+    .es-label {
+      font-size: .65rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .5px; color: var(--ep-muted);
+    }
+
+    .es-input {
+      width: 100%; padding: 8px 11px;
+      border: 1.5px solid var(--ep-border); border-radius: 8px;
+      font-size: .875rem; font-weight: 500; color: var(--ep-text);
+      background: #fff; outline: none; font-family: inherit;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .es-input:focus { border-color: var(--ep); box-shadow: 0 0 0 3px rgba(79,70,229,.12); }
+    .es-input--lg { font-size: .9375rem; font-weight: 600; padding: 9px 13px; }
+    textarea.es-input { resize: vertical; min-height: 56px; }
+
+    /* Metrics row (Time / Marks / Pass) */
+    .es-metrics {
+      display: grid; grid-template-columns: repeat(3,1fr);
+      gap: 9px; margin-bottom: 12px;
+    }
+
+    .es-metric {
+      background: #f8fafc; border: 1.5px solid var(--ep-border);
+      border-radius: 9px; padding: 9px 11px;
+      display: flex; flex-direction: column; gap: 3px;
+    }
+
+    .es-metric__lbl {
+      font-size: .62rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .45px; color: var(--ep-muted);
+      display: flex; align-items: center; gap: 4px;
+    }
+
+    .es-metric__input {
+      width: 100%; border: none; background: transparent;
+      font-size: 1.125rem; font-weight: 800; color: var(--ep-text);
+      outline: none; padding: 0; font-family: inherit; letter-spacing: -.5px;
+      -moz-appearance: textfield;
+    }
+    .es-metric__input::-webkit-outer-spin-button,
+    .es-metric__input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .es-metric__input:focus { color: var(--ep); }
+    .es-metric__input::placeholder { color: #cbd5e1; font-weight: 600; }
+
+    .es-metric__unit {
+      font-size: .68rem; font-weight: 500; color: var(--ep-muted);
+    }
+
+    /* Toggle switches */
+    .toggle-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 2px; }
+
+    .toggle-sw {
+      display: inline-flex; align-items: center; gap: 8px;
+      cursor: pointer; user-select: none;
+    }
+
+    .toggle-inp {
+      position: absolute; opacity: 0; width: 0; height: 0;
+    }
+
+    .toggle-track {
+      width: 38px; height: 21px; background: #e2e8f0;
+      border-radius: 11px; position: relative;
+      flex-shrink: 0; transition: background .22s;
+    }
+
+    .toggle-thumb {
+      position: absolute; left: 3px; top: 2.5px;
+      width: 16px; height: 16px;
+      background: #fff; border-radius: 50%;
+      transition: left .22s;
+      box-shadow: 0 1px 4px rgba(0,0,0,.18);
+    }
+
+    .toggle-inp:checked + .toggle-track { background: var(--ep); }
+    .toggle-inp:checked + .toggle-track .toggle-thumb { left: 19px; }
+
+    .toggle-txt { font-size: .8125rem; font-weight: 600; color: var(--ep-text); }
+
+    /* ── Questions section header ─────────────────────────────────────────── */
+    .qs-hdr { display: flex; align-items: center; gap: 7px; }
+    .qs-title { font-size: .875rem; font-weight: 700; color: var(--ep-text); }
+
+    .qcount-pill {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 22px; height: 22px; padding: 0 6px;
+      background: var(--ep); color: #fff;
+      border-radius: 11px; font-size: .68rem; font-weight: 800;
+    }
+
+    /* ── Exam question rows (JS-generated) ───────────────────────────────── */
+    #examQuestionList {
+      background: #fff;
+      border: 1px solid var(--ep-border);
+      border-radius: var(--ep-r);
+      overflow: hidden;
+    }
+
+    .exam-q-row {
+      padding: 10px 13px !important;
+      border-bottom: 1px solid #f1f5f9 !important;
+      border-left: 3px solid transparent !important;
+      display: flex !important; align-items: center !important; gap: 9px !important;
+      background: #fff !important;
+      transition: background .12s, border-left-color .12s !important;
+    }
+    .exam-q-row:last-child { border-bottom: none !important; }
+    .exam-q-row:hover { background: #fafbff !important; border-left-color: var(--ep) !important; }
+
+    .exam-q-row__num {
+      width: 24px !important; height: 24px !important; border-radius: 50% !important;
+      background: #f1f5f9 !important;
+      display: flex !important; align-items: center !important; justify-content: center !important;
+      font-size: .67rem !important; font-weight: 800 !important; color: var(--ep-muted) !important;
+      flex-shrink: 0 !important; min-width: unset !important; text-align: center !important;
+    }
+
+    .exam-q-row__reorder { display: flex !important; flex-direction: column !important; gap: 1px !important; flex-shrink: 0 !important; }
+    .exam-q-row__reorder .btn { padding: 1px 4px !important; line-height: 1.3 !important; font-size: .63rem !important; border-radius: 5px !important; }
+
+    .exam-q-row__title { font-size: .8rem !important; font-weight: 700 !important; color: var(--ep-text) !important; }
+    .exam-q-row__preview { font-size: .7rem !important; color: var(--ep-muted) !important; margin-top: 1px !important; }
+
+    .rm-q-btn {
+      width: 26px !important; height: 26px !important;
+      border-radius: 7px !important; padding: 0 !important;
+      display: inline-flex !important; align-items: center !important;
+      justify-content: center !important; font-size: .73rem !important;
+      flex-shrink: 0 !important; transition: all .14s !important;
+    }
+    .rm-q-btn:hover { background: #fef2f2 !important; border-color: #fca5a5 !important; color: #ef4444 !important; }
+
+    /* marks badge in exam-q-row */
+    #examQuestionList .badge.bg-light {
+      background: #f1f5f9 !important; color: var(--ep-text) !important;
+      border: 1px solid var(--ep-border) !important;
+      font-size: .68rem !important; border-radius: 20px !important;
+      padding: 3px 8px !important; font-weight: 700 !important;
+    }
+
+    /* ── Action buttons ──────────────────────────────────────────────────── */
+    .eb-actions { display: flex; gap: 9px; padding-bottom: 2px; }
+
+    .btn-draft {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 9px 18px; background: #fff; color: var(--ep-text);
+      border: 1.5px solid var(--ep-border); border-radius: 9px;
+      font-size: .8125rem; font-weight: 700; cursor: pointer;
+      transition: all .15s; font-family: inherit;
+    }
+    .btn-draft:hover { border-color: #94a3b8; background: #f8fafc; }
+
+    /* Submit button — JS replaces className so target by ID */
+    #btnSubmit {
+      border-radius: 9px !important; font-weight: 700 !important;
+      font-family: 'Plus Jakarta Sans', sans-serif !important;
+      font-size: .8125rem !important; padding: 9px 22px !important;
+      transition: all .18s !important;
+    }
+    #btnSubmit.btn-success:not(:disabled):hover { transform: translateY(-1px) !important; }
+    #btnSubmit.btn-warning { color: #fff !important; }
+
+    /* ── Exam cards (JS-generated) ───────────────────────────────────────── */
+    #examListEntries {
+      flex: 1 1 0; overflow-y: auto; background: #f8fafc; padding: 6px;
+    }
+
+    .exam-card {
+      margin-bottom: 5px !important;
+      padding: 11px 13px !important;
+      background: #fff !important;
+      border: 1px solid var(--ep-border) !important;
+      border-left: 3px solid transparent !important;
+      border-radius: 9px !important;
+      cursor: pointer !important;
+      transition: all .14s !important;
+    }
+    .exam-card:hover {
+      box-shadow: 0 2px 10px rgba(0,0,0,.07) !important;
+      border-left-color: var(--ep) !important;
+      background: #fafbff !important;
+    }
+    .exam-card.active {
+      border-left-color: var(--ep) !important;
+      background: #fafbff !important;
+      box-shadow: 0 2px 10px rgba(79,70,229,.1) !important;
+    }
+
+    .exam-card__name {
+      font-size: .82rem !important; font-weight: 700 !important;
+      color: var(--ep-text) !important; max-width: none !important;
+    }
+
+    .exam-card__meta {
+      font-size: .7rem !important; color: var(--ep-muted) !important;
+      margin-top: 5px !important; display: flex !important;
+      gap: 8px !important; flex-wrap: wrap !important;
+    }
+
+    /* Status badges on exam cards */
+    .exam-card .badge { font-size: .62rem !important; border-radius: 20px !important; font-weight: 700 !important; padding: 2px 8px !important; text-transform: uppercase !important; letter-spacing: .3px !important; }
+    .exam-card .badge.bg-success   { background: #dcfce7 !important; color: #15803d !important; }
+    .exam-card .badge.bg-secondary { background: #f1f5f9 !important; color: #64748B !important; }
+    .exam-card .badge.bg-warning   { background: #fef9c3 !important; color: #92400e !important; }
+
+    /* ── Saved exams search ──────────────────────────────────────────────── */
+    .eb-search-wrap { padding: 9px 11px; border-bottom: 1px solid var(--ep-border); flex-shrink: 0; }
+
+    .eb-search {
+      width: 100%; padding: 6px 10px 6px 30px;
+      border: 1.5px solid var(--ep-border); border-radius: 7px;
+      font-size: .8rem; color: var(--ep-text);
+      background: #f8fafc;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: 9px center;
+      outline: none; font-family: inherit;
+      transition: border-color .15s;
+    }
+    .eb-search:focus { border-color: var(--ep); box-shadow: 0 0 0 3px rgba(79,70,229,.12); background-color: #fff; }
+
+    /* ── Panel empty states ──────────────────────────────────────────────── */
+    .panel-empty {
+      text-align: center; padding: 28px 16px; color: var(--ep-muted);
+    }
+    .panel-empty i { font-size: 1.75rem; opacity: .2; display: block; margin-bottom: 8px; }
+    .panel-empty p { font-size: .78rem; margin: 0; line-height: 1.6; }
+
+    /* Empty state for question list */
+    .qlist-empty {
+      text-align: center; padding: 36px 24px;
+    }
+    .qlist-empty__ico {
+      width: 52px; height: 52px; border-radius: 14px;
+      background: #f1f5f9;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 12px; font-size: 1.4rem; color: #94a3b8;
+    }
+    .qlist-empty__title { font-size: .875rem; font-weight: 700; color: var(--ep-text); margin-bottom: 4px; }
+    .qlist-empty__sub { font-size: .78rem; color: var(--ep-muted); line-height: 1.55; margin: 0; }
+
+    /* ── totalMarksDisplay badge ─────────────────────────────────────────── */
+    #totalMarksDisplay {
+      background: var(--ep) !important; color: #fff !important;
+      font-size: .6rem !important; padding: 1px 6px !important;
+      border-radius: 9px !important; vertical-align: middle;
+    }
+
+    /* ── examListCount badge ─────────────────────────────────────────────── */
+    #examListCount {
+      background: #f1f5f9 !important; color: var(--ep-muted) !important;
+      font-size: .68rem !important; padding: 2px 8px !important;
+      border-radius: 9px !important; font-weight: 700 !important;
+    }
+
+    /* ── Smooth entry animation ──────────────────────────────────────────── */
+    @keyframes epFadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .picker-item, .exam-card, .exam-q-row {
+      animation: epFadeIn .14s ease;
+    }
+
+    /* ── Responsive ──────────────────────────────────────────────────────── */
+    @media (max-width: 1280px) {
+      #pickerPanel  { width: 280px; }
+      #examListPanel { width: 248px; }
+    }
+    @media (max-width: 1024px) {
+      .eb-stats { display: none; }
     }
   </style>
 </head>
@@ -111,7 +674,6 @@
       <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-graph-up-arrow"></i><span>Faculty Analytics</span></a></li>
       <li><a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true"><i class="bi bi-file-earmark-text"></i><span>Custom Reports</span></a></li>
 
-
     </ul>
     <ul class="sidebar__nav-bottom">
       <li>
@@ -124,7 +686,7 @@
   </nav>
 
   <!-- ── MAIN ─────────────────────────────────────────────────────────────── -->
-  <div class="flex-grow-1 d-flex flex-column overflow-hidden">
+  <div class="flex-grow-1 d-flex flex-column overflow-hidden eb-root">
 
     <!-- Topbar -->
     <header class="topbar flex-shrink-0">
@@ -162,222 +724,273 @@
       </div>
     </header>
 
-    <!-- Three-column workspace -->
-    <div class="flex-grow-1 d-flex overflow-hidden" style="background:#f8fafc; padding:.75rem; gap:.75rem;">
+    <!-- Workspace -->
+    <div class="eb-workspace-wrap">
 
-      <!-- ── QUESTION PICKER ─────────────────────────────────────────────── -->
-      <div id="pickerPanel">
-
-        <!-- Header -->
-        <div class="panel-header d-flex justify-content-between align-items-center">
-          <div class="d-flex align-items-center gap-2">
-            <div style="width:26px;height:26px;border-radius:7px;background:#eff6ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <i class="bi bi-funnel-fill" style="color:#0d6efd;font-size:.75rem;"></i>
-            </div>
-            <span class="panel-header__title">Question Picker</span>
+      <!-- Stats bar -->
+      <div class="eb-stats">
+        <div class="eb-stat">
+          <div class="eb-stat__ico eb-stat__ico--i"><i class="bi bi-journal-check"></i></div>
+          <div>
+            <div class="eb-stat__val" id="statTotalExams">0</div>
+            <div class="eb-stat__lbl">Total Exams</div>
           </div>
-          <button class="btn btn-sm btn-outline-secondary" id="btnRefreshFilters"
-                  title="Reload Class list">
-            <i class="bi bi-arrow-clockwise"></i>
-          </button>
         </div>
+        <div class="eb-stat">
+          <div class="eb-stat__ico eb-stat__ico--c"><i class="bi bi-patch-question-fill"></i></div>
+          <div>
+            <div class="eb-stat__val" id="statTotalQuestions">0</div>
+            <div class="eb-stat__lbl">Questions</div>
+          </div>
+        </div>
+        <div class="eb-stat">
+          <div class="eb-stat__ico eb-stat__ico--g"><i class="bi bi-check-circle-fill"></i></div>
+          <div>
+            <div class="eb-stat__val" id="statApproved">0</div>
+            <div class="eb-stat__lbl">Approved</div>
+          </div>
+        </div>
+        <div class="eb-stat">
+          <div class="eb-stat__ico eb-stat__ico--a"><i class="bi bi-pencil-fill"></i></div>
+          <div>
+            <div class="eb-stat__val" id="statDrafts">0</div>
+            <div class="eb-stat__lbl">Drafts</div>
+          </div>
+        </div>
+      </div>
 
-        <!-- Cascade filters -->
-        <div class="filter-bar">
-          <div class="filter-group">
-            <div class="filter-section">
-              <label class="filter-label" for="filterClass">Class</label>
-              <select class="form-select form-select-sm" id="filterClass">
+      <!-- 3-column layout -->
+      <div class="eb-workspace">
+
+        <!-- ── QUESTION BANK ───────────────────────────────────────────── -->
+        <div id="pickerPanel" class="eb-panel">
+
+          <div class="ep-hdr">
+            <div class="ep-ico ep-ico--i"><i class="bi bi-book-half"></i></div>
+            <span class="ep-title">Question Bank</span>
+            <button class="eb-icon-btn" id="btnRefreshFilters" title="Reset filters">
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
+          </div>
+
+          <!-- Cascade filters -->
+          <div class="qb-filters">
+
+            <div class="qf-row">
+              <label class="qf-lbl" for="filterClass">Class</label>
+              <select class="qf-select" id="filterClass">
                 <option value="">Loading…</option>
               </select>
             </div>
-            <div class="filter-section">
-              <label class="filter-label" for="filterSubject">Subject</label>
-              <select class="form-select form-select-sm" id="filterSubject" disabled>
+
+            <div class="qf-row">
+              <label class="qf-lbl" for="filterSubject">Subject</label>
+              <select class="qf-select" id="filterSubject" disabled>
                 <option value="">— Select Class first —</option>
               </select>
             </div>
-            <div class="filter-section">
-              <label class="filter-label" for="filterExamBoard">Exam Board</label>
-              <select class="form-select form-select-sm" id="filterExamBoard" disabled>
+
+            <div class="qf-row">
+              <label class="qf-lbl" for="filterExamBoard">Exam Board</label>
+              <select class="qf-select" id="filterExamBoard" disabled>
                 <option value="">— Select Subject first —</option>
               </select>
             </div>
-            <div class="filter-section">
-              <label class="filter-label" for="filterTopic">Topic</label>
-              <select class="form-select form-select-sm" id="filterTopic" disabled>
+
+            <div class="qf-row">
+              <label class="qf-lbl" for="filterTopic">Topic</label>
+              <select class="qf-select" id="filterTopic" disabled>
                 <option value="">— Select Exam Board first —</option>
               </select>
             </div>
-            <div class="filter-section">
-              <label class="filter-label" for="filterSubTopic">Sub-Topic</label>
-              <select class="form-select form-select-sm" id="filterSubTopic" disabled>
+
+            <div class="qf-row">
+              <label class="qf-lbl" for="filterSubTopic">Sub-Topic</label>
+              <select class="qf-select" id="filterSubTopic" disabled>
                 <option value="">— Select Topic first —</option>
               </select>
             </div>
-            <div class="filter-section">
-              <label class="filter-label" for="filterComplexity">Complexity</label>
-              <select class="form-select form-select-sm" id="filterComplexity">
+
+            <!-- Complexity — hidden select (used by exam.js) + visible chips -->
+            <div class="qf-row">
+              <span class="qf-lbl">Complexity</span>
+              <select id="filterComplexity" style="display:none!important">
                 <option value="">All Complexities</option>
                 <option value="FOUNDATION">Foundation</option>
                 <option value="INTERMEDIATE">Intermediate</option>
                 <option value="HIGHER">Higher</option>
               </select>
+              <div class="cplx-row" id="cplxChips">
+                <button type="button" class="cplx-chip cp-all" data-val="">All</button>
+                <button type="button" class="cplx-chip" data-val="FOUNDATION">Foundation</button>
+                <button type="button" class="cplx-chip" data-val="INTERMEDIATE">Intermediate</button>
+                <button type="button" class="cplx-chip" data-val="HIGHER">Higher</button>
+              </div>
             </div>
-            <button class="btn btn-sm btn-primary w-100 mt-1" id="btnSearch">
-              <i class="bi bi-funnel-fill me-1"></i>Apply Filter
+
+            <button class="btn-apply" id="btnSearch">
+              <i class="bi bi-funnel-fill"></i>Apply Filters
             </button>
+
           </div>
-        </div>
 
-        <!-- Question list -->
-        <div class="panel-scroll" id="questionPickerList" style="background:#f8fafc;">
-          <div class="panel-empty"><i class="bi bi-funnel"></i><p>Select a class above<br>or click <strong>Apply Filter</strong>.</p></div>
-        </div>
-      </div>
-
-      <!-- ── EXAM PAPER BUILDER ──────────────────────────────────────────── -->
-      <div id="builderPanel">
-
-        <!-- Toolbar -->
-        <div class="panel-header d-flex gap-2 align-items-center flex-wrap">
-          <div class="d-flex align-items-center gap-2 me-1">
-            <div style="width:26px;height:26px;border-radius:7px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <i class="bi bi-journal-check" style="color:#198754;font-size:.75rem;"></i>
-            </div>
-            <span class="panel-header__title">Exam Paper Builder</span>
-          </div>
-          <select class="form-select form-select-sm" id="examSelect" style="max-width:240px;">
-            <option value="">— New Exam —</option>
-          </select>
-          <button class="btn btn-sm btn-outline-primary" id="btnNewExam" title="New exam">
-            <i class="bi bi-plus-lg me-1"></i>New
-          </button>
-          <button class="btn btn-sm btn-outline-danger ms-auto" id="btnDeleteExam"
-                  title="Delete exam" disabled>
-            <i class="bi bi-trash"></i>
-          </button>
-        </div>
-
-        <!-- Scrollable builder content -->
-        <div class="panel-scroll px-3 py-3" style="background:#f8fafc;">
-
-          <!-- Exam metadata form -->
-          <div class="card-pro p-3 mb-3">
-            <div class="d-flex align-items-center gap-2 mb-2">
-              <div style="width:28px;height:28px;border-radius:8px;background:#eff6ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <i class="bi bi-sliders" style="color:#0d6efd;font-size:.8rem;"></i>
-              </div>
-              <span style="font-size:.82rem;font-weight:700;color:#1a2332;">Exam Settings</span>
-            </div>
-            <div class="row g-2">
-              <div class="col-12">
-                <label class="form-label" for="examName">
-                  Exam Name <span class="text-danger">*</span>
-                </label>
-                <input type="text" class="form-control form-control-sm" id="examName"
-                       placeholder="e.g. Year 10 Mock Paper 1" maxlength="200"/>
-              </div>
-              <div class="col-12">
-                <label class="form-label" for="examDesc">Description</label>
-                <textarea class="form-control form-control-sm" id="examDesc" rows="2"
-                          placeholder="Optional description…"></textarea>
-              </div>
-              <div class="col-sm-4">
-                <label class="form-label" for="examTimeLimit">
-                  Time Limit (min) <span class="text-danger">*</span>
-                </label>
-                <input type="number" class="form-control form-control-sm" id="examTimeLimit"
-                       value="60" min="1" max="600"/>
-              </div>
-              <div class="col-sm-4">
-                <label class="form-label" for="examTotalMarks">
-                  Total Marks
-                  <span class="badge bg-secondary ms-1" id="totalMarksDisplay">0</span>
-                </label>
-                <input type="number" class="form-control form-control-sm" id="examTotalMarks"
-                       value="0" min="0" title="Auto-calculated; override if needed"/>
-              </div>
-              <div class="col-sm-4">
-                <label class="form-label" for="examPassMark">Pass Mark</label>
-                <input type="number" class="form-control form-control-sm" id="examPassMark"
-                       min="0" placeholder="Optional"/>
-              </div>
-              <div class="col-sm-6 d-flex align-items-center gap-2 pt-1">
-                <div class="form-check mb-0">
-                  <input class="form-check-input" type="checkbox" id="examShuffleQ"/>
-                  <label class="form-check-label" for="examShuffleQ">Shuffle Questions</label>
-                </div>
-              </div>
-              <div class="col-sm-6 d-flex align-items-center gap-2 pt-1">
-                <div class="form-check mb-0">
-                  <input class="form-check-input" type="checkbox" id="examShuffleOpt"/>
-                  <label class="form-check-label" for="examShuffleOpt">Shuffle Options</label>
-                </div>
-              </div>
+          <!-- Question results -->
+          <div id="questionPickerList">
+            <div class="panel-empty">
+              <i class="bi bi-book"></i>
+              <p>Select filters above<br>and click <strong>Apply Filters</strong>.</p>
             </div>
           </div>
 
-          <!-- Questions section -->
-          <div class="d-flex align-items-center gap-2 mb-2">
-            <div style="width:28px;height:28px;border-radius:8px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <i class="bi bi-patch-question" style="color:#198754;font-size:.8rem;"></i>
-            </div>
-            <span style="font-size:.82rem;font-weight:700;color:#1a2332;">Questions in this exam</span>
-            <span class="badge bg-primary rounded-pill ms-1" id="qCountBadge">0</span>
-          </div>
-          <div id="examQuestionList" class="card-pro mb-3">
-            <p class="text-muted small text-center m-3">
-              No questions added yet. Use the picker on the left.
-            </p>
-          </div>
-
-          <!-- Action buttons -->
-          <div class="d-flex gap-2 pb-2">
-            <button class="btn btn-outline-secondary" id="btnSaveDraft">
-              <i class="bi bi-floppy me-1"></i>Save Draft
-            </button>
-            <button class="btn btn-success" id="btnSubmit" disabled>
-              <i class="bi bi-check-circle me-1"></i>Submit / Approve
-            </button>
-          </div>
-
         </div>
-      </div>
 
-      <!-- ── SAVED EXAMS ────────────────────────────────────────────────── -->
-      <div id="examListPanel">
+        <!-- ── EXAM BUILDER ────────────────────────────────────────────── -->
+        <div id="builderPanel" class="eb-panel">
 
-        <div class="panel-header">
-          <div class="d-flex justify-content-between align-items-center mb-2">
+          <!-- Toolbar -->
+          <div class="eb-toolbar">
             <div class="d-flex align-items-center gap-2">
-              <div style="width:26px;height:26px;border-radius:7px;background:#fef9c3;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <i class="bi bi-archive-fill" style="color:#b45309;font-size:.75rem;"></i>
-              </div>
-              <span class="panel-header__title">Saved Exams</span>
+              <div class="ep-ico ep-ico--g"><i class="bi bi-journal-check"></i></div>
+              <span class="ep-title" style="flex:unset;">Exam Builder</span>
             </div>
-            <span class="badge bg-secondary rounded-pill" id="examListCount">0</span>
+            <select class="eb-toolbar__exam-select" id="examSelect">
+              <option value="">— New Exam —</option>
+            </select>
+            <button class="btn-new-exam" id="btnNewExam">
+              <i class="bi bi-plus-lg"></i>New Exam
+            </button>
+            <button class="btn-del-exam" id="btnDeleteExam" disabled>
+              <i class="bi bi-trash"></i>Delete
+            </button>
           </div>
-          <input type="text" class="form-control form-control-sm" id="examSearch"
-                 placeholder="Search exams…"/>
+
+          <!-- Scrollable body -->
+          <div class="eb-scroll">
+
+            <!-- Exam Settings card -->
+            <div class="es-card">
+              <div class="es-card__hdr">
+                <div class="ep-ico ep-ico--i"><i class="bi bi-sliders2"></i></div>
+                <span class="es-card__hdr-title">Exam Settings</span>
+              </div>
+              <div class="es-card__body">
+
+                <div class="es-field">
+                  <label class="es-label" for="examName">Exam Name <span style="color:#ef4444">*</span></label>
+                  <input type="text" class="es-input es-input--lg" id="examName"
+                         placeholder="e.g. Year 10 Mock Paper 1" maxlength="200"/>
+                </div>
+
+                <div class="es-field">
+                  <label class="es-label" for="examDesc">Description</label>
+                  <textarea class="es-input" id="examDesc" rows="2" placeholder="Optional description…"></textarea>
+                </div>
+
+                <!-- Metrics row -->
+                <div class="es-metrics">
+                  <div class="es-metric">
+                    <div class="es-metric__lbl">Duration <span style="color:#ef4444">*</span></div>
+                    <input type="number" class="es-metric__input" id="examTimeLimit" value="60" min="1" max="600"/>
+                    <div class="es-metric__unit">minutes</div>
+                  </div>
+                  <div class="es-metric">
+                    <div class="es-metric__lbl">
+                      Total Marks
+                      <span class="badge bg-primary" id="totalMarksDisplay">0</span>
+                    </div>
+                    <input type="number" class="es-metric__input" id="examTotalMarks" value="0" min="0"
+                           title="Auto-calculated; override if needed"/>
+                    <div class="es-metric__unit">marks</div>
+                  </div>
+                  <div class="es-metric">
+                    <div class="es-metric__lbl">Pass Mark</div>
+                    <input type="number" class="es-metric__input" id="examPassMark" min="0" placeholder="—"/>
+                    <div class="es-metric__unit">marks</div>
+                  </div>
+                </div>
+
+                <!-- Toggle switches -->
+                <div class="toggle-row">
+                  <label class="toggle-sw">
+                    <input type="checkbox" class="toggle-inp" id="examShuffleQ"/>
+                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                    <span class="toggle-txt">Shuffle Questions</span>
+                  </label>
+                  <label class="toggle-sw">
+                    <input type="checkbox" class="toggle-inp" id="examShuffleOpt"/>
+                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                    <span class="toggle-txt">Shuffle Options</span>
+                  </label>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Questions section header -->
+            <div class="qs-hdr">
+              <div class="ep-ico ep-ico--i"><i class="bi bi-patch-question"></i></div>
+              <span class="qs-title">Questions</span>
+              <span class="qcount-pill" id="qCountBadge">0</span>
+            </div>
+
+            <!-- Question list -->
+            <div id="examQuestionList">
+              <div class="qlist-empty">
+                <div class="qlist-empty__ico"><i class="bi bi-clipboard2-x"></i></div>
+                <div class="qlist-empty__title">No Questions Added Yet</div>
+                <p class="qlist-empty__sub">Search and add questions from the<br>Question Bank on the left.</p>
+              </div>
+            </div>
+
+            <!-- Action row -->
+            <div class="eb-actions">
+              <button class="btn-draft" id="btnSaveDraft">
+                <i class="bi bi-floppy"></i>Save Draft
+              </button>
+              <button class="btn btn-success" id="btnSubmit" disabled>
+                <i class="bi bi-check-circle me-1"></i>Submit / Approve
+              </button>
+            </div>
+
+          </div>
         </div>
 
-        <div class="panel-scroll" id="examListEntries" style="background:#f8fafc;">
-          <div class="panel-empty"><i class="bi bi-journal-x"></i><p>No exams yet.<br>Create one in the builder.</p></div>
+        <!-- ── SAVED EXAMS ─────────────────────────────────────────────── -->
+        <div id="examListPanel" class="eb-panel">
+
+          <div class="ep-hdr">
+            <div class="ep-ico ep-ico--a"><i class="bi bi-archive-fill"></i></div>
+            <span class="ep-title">Saved Exams</span>
+            <span class="badge" id="examListCount">0</span>
+          </div>
+
+          <div class="eb-search-wrap">
+            <input type="text" class="eb-search" id="examSearch" placeholder="Search exams…"/>
+          </div>
+
+          <div id="examListEntries">
+            <div class="panel-empty">
+              <i class="bi bi-journal-x"></i>
+              <p>No exams yet.<br>Create one in the builder.</p>
+            </div>
+          </div>
+
         </div>
 
-      </div>
+      </div><!-- /eb-workspace -->
+    </div><!-- /eb-workspace-wrap -->
 
-    </div>
-  </div>
-</div>
+  </div><!-- /main -->
+</div><!-- /adminWrapper -->
 
 <!-- Toast container -->
 <div id="toastContainer" class="position-fixed bottom-0 end-0 p-3"
      style="z-index:9999;" aria-live="polite"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
+  /* User info */
   (function() {
     var name = sessionStorage.getItem('edu_name') || '';
     if (name) {
@@ -387,7 +1000,51 @@
       if (av) av.textContent = name.charAt(0).toUpperCase();
     }
   })();
+
+  /* Complexity chip sync */
+  document.querySelectorAll('#cplxChips .cplx-chip').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('#cplxChips .cplx-chip').forEach(function(b) {
+        b.className = 'cplx-chip';
+      });
+      var val = btn.dataset.val;
+      if (!val)                  btn.classList.add('cp-all');
+      else if (val==='FOUNDATION')  btn.classList.add('cp-found');
+      else if (val==='INTERMEDIATE') btn.classList.add('cp-inter');
+      else                       btn.classList.add('cp-high');
+      var sel = document.getElementById('filterComplexity');
+      sel.value = val;
+      sel.dispatchEvent(new Event('change'));
+    });
+  });
+
+  /* Stats bar updater — called after examList is loaded */
+  function updateStatsBar() {
+    var list = (typeof examList !== 'undefined') ? examList : [];
+    var total    = list.length;
+    var approved = list.filter(function(e){ return e.status==='APPROVED'; }).length;
+    var drafts   = list.filter(function(e){ return e.status==='DRAFT'; }).length;
+    var questions= list.reduce(function(s,e){ return s+(e.questionCount||0); }, 0);
+    var s;
+    s=document.getElementById('statTotalExams');    if(s) s.textContent=total;
+    s=document.getElementById('statTotalQuestions');if(s) s.textContent=questions;
+    s=document.getElementById('statApproved');      if(s) s.textContent=approved;
+    s=document.getElementById('statDrafts');        if(s) s.textContent=drafts;
+  }
 </script>
-<script th:src="@{/js/exam.js(v=3)}"></script>
+
+<script th:src="@{/js/exam.js(v=4)}"></script>
+
+<script>
+  /* Wrap renderExamList to also refresh the stats bar */
+  if (typeof renderExamList === 'function') {
+    var _origRenderExamList = renderExamList;
+    renderExamList = function() {
+      _origRenderExamList.apply(this, arguments);
+      updateStatsBar();
+    };
+  }
+</script>
+
 </body>
 </html>

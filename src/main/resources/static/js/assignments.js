@@ -65,12 +65,16 @@ document.addEventListener('DOMContentLoaded', function () {
   Promise.all([
     fetch('/api/admin/course-nodes', { headers: authHeaders() }).then(function (r) { return r.json(); }),
     fetch('/api/admin/students',     { headers: authHeaders() }).then(function (r) { return r.json(); }),
-    fetch('/api/admin/teachers',     { headers: authHeaders() }).then(function (r) { return r.json(); })
+    fetch('/api/admin/teachers',     { headers: authHeaders() }).then(function (r) { return r.json(); }),
+    fetch('/api/admin/assignments/latest', { headers: authHeaders() }).then(function (r) {
+      return r.status === 204 ? null : r.json();
+    })
   ]).then(function (results) {
     S.nodes    = results[0];
     S.students = results[1];
     S.teachers = results[2];
     populateCourseDropdown();
+    if (results[3]) restoreSession(results[3]);
     renderTeachers();
     updateSummary();
   }).catch(function (e) {
@@ -173,7 +177,7 @@ function onCourseChange() {
   subFilter.innerHTML = '<option value="">— All Subjects —</option>';
   subjects.forEach(function (s) {
     var opt = document.createElement('option');
-    opt.value = s.title;
+    opt.value = s.id;
     opt.textContent = s.title;
     subFilter.appendChild(opt);
   });
@@ -465,9 +469,14 @@ function assignTeacher(teacherId, groupId) {
 function openAssignTeachersModal() {
   if (!S.selectedCourseId) { showToast('Select a course first', 'warning'); return; }
 
-  var subject = document.getElementById('subjectFilter').value;
+  var subjectId = document.getElementById('subjectFilter').value;
+  var subjectName = '';
+  if (subjectId) {
+    var subjectNode = S.nodes.find(function (n) { return n.id === parseInt(subjectId, 10); });
+    subjectName = subjectNode ? subjectNode.title : '';
+  }
   var subjectEl = document.getElementById('modalAssignSubject');
-  if (subjectEl) subjectEl.value = subject || 'All Subjects';
+  if (subjectEl) subjectEl.value = subjectName || 'All Subjects';
 
   document.getElementById('teacherSearchModal').value = '';
   renderModalTeachers('');
@@ -541,7 +550,12 @@ function confirmAssignTeachers() {
   renderTeachers();
   updateSummary();
 
-  var subject = document.getElementById('subjectFilter').value || 'all subjects';
+  var subjectId = document.getElementById('subjectFilter').value;
+  var subject = 'all subjects';
+  if (subjectId) {
+    var subjectNode = S.nodes.find(function (n) { return n.id === parseInt(subjectId, 10); });
+    subject = subjectNode ? subjectNode.title : 'all subjects';
+  }
   showToast(checked.length + ' teacher(s) assigned for ' + subject, 'success');
 }
 
@@ -555,6 +569,41 @@ function updateSummary() {
     return assignedGroupIds.indexOf(g.id) === -1;
   }).length;
   setText('sumUnassigned', unassigned);
+}
+
+// ── Restore saved session ─────────────────────────────────────────────────────
+function restoreSession(session) {
+  var sel = document.getElementById('courseSelect');
+  sel.value = session.courseNodeId;
+  onCourseChange();
+
+  if (session.scopeLevel) selectScope(session.scopeLevel);
+
+  var maxInp = document.getElementById('maxStudentsInput');
+  if (maxInp) maxInp.value = session.maxPerGroup;
+  S.maxPerGroup = session.maxPerGroup;
+
+  S.groups = (session.groups || []).map(function (g) {
+    return { id: g.id, name: g.name, desc: g.description || '', period: g.period || '', studentIds: g.studentIds || [] };
+  });
+  var maxId = S.groups.reduce(function (m, g) { return Math.max(m, g.id); }, 0);
+  S.nextGroupId = maxId + 1;
+
+  S.activatedTeacherIds = [];
+  S.assignments = {};
+  (session.teacherAssignments || []).forEach(function (ta) {
+    if (S.activatedTeacherIds.indexOf(ta.teacherId) === -1) S.activatedTeacherIds.push(ta.teacherId);
+    if (ta.groupId) S.assignments[ta.teacherId] = ta.groupId;
+  });
+
+  renderGroups();
+
+  var banner = document.getElementById('groupSuccessMsg');
+  if (banner) {
+    banner.textContent = 'Restored ' + S.groups.length + ' group(s) from last saved session (' + session.status + ').';
+    banner.style.display = '';
+    setTimeout(function () { banner.style.display = 'none'; }, 6000);
+  }
 }
 
 // ── Actions ────────────────────────────────────────────────────────────────────
