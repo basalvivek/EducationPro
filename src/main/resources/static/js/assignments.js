@@ -655,3 +655,106 @@ function postSave(status, toastType, btnId) {
 
 function saveAsDraft()   { postSave('DRAFT', 'info',    'btnSaveDraft'); }
 function reviewAndSave() { postSave('SAVED', 'success', 'btnReviewSave'); }
+
+// ── Assign Group Modal ──────────────────────────────────────────────────────────
+var agPairs = [];  // {teacherId, groupId}
+
+function openAssignGroupModal() {
+  if (!S.selectedCourseId) { showToast('Select a course first', 'warning'); return; }
+  if (!S.groups.length) { showToast('Create at least one group first', 'warning'); return; }
+
+  agPairs = [];
+  populateAgDropdowns();
+  renderAgPairs();
+
+  new bootstrap.Modal(document.getElementById('assignGroupModal')).show();
+}
+
+function populateAgDropdowns() {
+  var teacherSel = document.getElementById('agTeacherSelect');
+  var groupSel = document.getElementById('agGroupSelect');
+
+  teacherSel.innerHTML = '<option value="">— Choose Teacher —</option>';
+  S.teachers.forEach(function (t) {
+    var opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = escHtml(t.firstName + ' ' + t.lastName);
+    teacherSel.appendChild(opt);
+  });
+
+  groupSel.innerHTML = '<option value="">— Choose Group —</option>';
+  S.groups.forEach(function (g) {
+    var opt = document.createElement('option');
+    opt.value = g.id;
+    opt.textContent = escHtml(g.name);
+    groupSel.appendChild(opt);
+  });
+}
+
+function addTeacherGroupPair() {
+  var teacherId = parseInt(document.getElementById('agTeacherSelect').value, 10);
+  var groupId = parseInt(document.getElementById('agGroupSelect').value, 10);
+
+  if (!teacherId || !groupId) { showToast('Select both teacher and group', 'warning'); return; }
+
+  if (agPairs.find(function (p) { return p.teacherId === teacherId && p.groupId === groupId; })) {
+    showToast('This combination already exists', 'warning'); return;
+  }
+
+  agPairs.push({ teacherId: teacherId, groupId: groupId });
+  document.getElementById('agTeacherSelect').value = '';
+  document.getElementById('agGroupSelect').value = '';
+  renderAgPairs();
+}
+
+function removeAgPair(index) {
+  agPairs.splice(index, 1);
+  renderAgPairs();
+}
+
+function renderAgPairs() {
+  var list = document.getElementById('agPairsList');
+  setText('agPairCount', agPairs.length);
+
+  if (!agPairs.length) {
+    list.innerHTML = '<div class="text-center text-muted py-3 small">No assignments yet. Add combinations above.</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  agPairs.forEach(function (pair, i) {
+    var teacher = S.teachers.find(function (t) { return t.id === pair.teacherId; });
+    var group = S.groups.find(function (g) { return g.id === pair.groupId; });
+    var teacherName = teacher ? (teacher.firstName + ' ' + teacher.lastName) : 'Unknown';
+    var groupName = group ? group.name : 'Unknown';
+
+    var div = document.createElement('div');
+    div.className = 'd-flex align-items-center justify-content-between p-2 mb-2 rounded bg-light border';
+    div.innerHTML =
+      '<div>' +
+        '<div class="fw-medium small">' + escHtml(teacherName) + '</div>' +
+        '<div class="text-muted" style="font-size:.72rem;">→ ' + escHtml(groupName) + '</div>' +
+      '</div>' +
+      '<button class="btn btn-sm btn-outline-danger" onclick="removeAgPair(' + i + ')">' +
+        '<i class="bi bi-trash"></i>' +
+      '</button>';
+    list.appendChild(div);
+  });
+}
+
+function saveAssignGroups() {
+  if (!agPairs.length) { showToast('Add at least one assignment', 'warning'); return; }
+
+  agPairs.forEach(function (pair) {
+    S.assignments[pair.teacherId] = pair.groupId;
+    if (S.activatedTeacherIds.indexOf(pair.teacherId) === -1) {
+      S.activatedTeacherIds.push(pair.teacherId);
+    }
+  });
+
+  bootstrap.Modal.getInstance(document.getElementById('assignGroupModal')).hide();
+  renderTeachers();
+  updateSummary();
+
+  showToast(agPairs.length + ' assignment(s) saved', 'success');
+}

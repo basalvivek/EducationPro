@@ -424,6 +424,9 @@
           <div class="card border-0 shadow-sm h-100" style="border-radius:12px;">
             <div class="card-header bg-white border-0 d-flex align-items-center justify-content-between pb-0 pt-3 px-3">
               <span class="fw-semibold" style="font-size:.88rem;color:#1a2332;">Teachers &amp; Assignments</span>
+              <button class="btn btn-sm btn-outline-primary" style="font-size:.78rem;" onclick="openAssignGroupModal()">
+                <i class="bi bi-link-45deg me-1"></i>Assign Group
+              </button>
             </div>
             <div class="card-body p-0 overflow-auto" style="max-height:420px;">
               <table class="table table-sm table-hover align-middle mb-0" style="font-size:.82rem;">
@@ -625,6 +628,66 @@
                   style="background:#6f42c1;border-color:#6f42c1;color:#fff;">
             <i class="bi bi-check-circle me-1"></i>Assign
             <span id="modalAssignCount">0</span> Teacher(s)
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Assign Group Modal ──────────────────────────────────────────────── -->
+  <div class="modal fade" id="assignGroupModal" tabindex="-1"
+       aria-labelledby="assignGroupModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content" style="border-radius:14px;border:none;">
+
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title fw-bold" id="assignGroupModalLabel" style="font-size:1rem;">
+            <i class="bi bi-link-45deg me-2" style="color:#0d6efd;"></i>Assign Teachers to Groups
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body pt-2">
+
+          <!-- Teacher & Group selection row -->
+          <div class="row g-2 mb-3">
+            <div class="col-md-5">
+              <label class="form-label small fw-medium" for="agTeacherSelect">Select Teacher</label>
+              <select class="form-select form-select-sm" id="agTeacherSelect" style="font-size:.82rem;">
+                <option value="">— Choose Teacher —</option>
+              </select>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label small fw-medium" for="agGroupSelect">Select Group</label>
+              <select class="form-select form-select-sm" id="agGroupSelect" style="font-size:.82rem;">
+                <option value="">— Choose Group —</option>
+              </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+              <button class="btn btn-sm btn-primary w-100" onclick="addTeacherGroupPair()">
+                <i class="bi bi-plus"></i> Add
+              </button>
+            </div>
+          </div>
+
+          <!-- List of added pairs -->
+          <div class="fw-semibold mb-2" style="font-size:.85rem;">
+            Assignments
+            <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle ms-1"
+                  style="font-size:.7rem;" id="agPairCount">0</span>
+          </div>
+
+          <div id="agPairsList" class="border rounded p-2 overflow-auto" style="max-height:280px;">
+            <div class="text-center text-muted py-3 small">No assignments yet. Add combinations above.</div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary btn-sm px-4 fw-semibold" onclick="saveAssignGroups()">
+            <i class="bi bi-check-circle me-1"></i>Save Assignments
           </button>
         </div>
 
