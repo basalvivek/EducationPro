@@ -751,7 +751,11 @@ function addTeacherGroupPair() {
   if (!teacherId || !groupId) { showToast('Select both teacher and group', 'warning'); return; }
 
   if (agPairs.find(function (p) { return p.teacherId === teacherId && p.groupId === groupId; })) {
-    showToast('This combination already exists', 'warning'); return;
+    showToast('This pair already in list', 'warning'); return;
+  }
+
+  if (agPairs.find(function (p) { return p.teacherId === teacherId; })) {
+    showToast('Teacher already assigned in this batch. Remove or edit existing.', 'warning'); return;
   }
 
   agPairs.push({ teacherId: teacherId, groupId: groupId });
