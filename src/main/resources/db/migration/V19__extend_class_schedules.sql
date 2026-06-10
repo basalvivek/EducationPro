@@ -14,11 +14,21 @@ ALTER TABLE class_schedules
   ADD COLUMN IF NOT EXISTS status                VARCHAR(20)  NOT NULL DEFAULT 'DRAFT';
 
 -- Add CHECK constraints
-ALTER TABLE class_schedules
-  ADD CONSTRAINT IF NOT EXISTS chk_schedule_tab CHECK (schedule_tab IN ('CLASSES','EVENTS','HOLIDAYS','OTHERS')),
-  ADD CONSTRAINT IF NOT EXISTS chk_date_mode    CHECK (date_mode    IN ('SINGLE','MULTIPLE','RECURRING')),
-  ADD CONSTRAINT IF NOT EXISTS chk_audience     CHECK (audience IS NULL OR audience IN ('ALL','TEACHERS','STUDENTS','PARENTS')),
-  ADD CONSTRAINT IF NOT EXISTS chk_status       CHECK (status IN ('DRAFT','ACTIVE','CANCELLED','COMPLETED'));
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_name='class_schedules' AND constraint_name='chk_schedule_tab') THEN
+    ALTER TABLE class_schedules ADD CONSTRAINT chk_schedule_tab CHECK (schedule_tab IN ('CLASSES','EVENTS','HOLIDAYS','OTHERS'));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_name='class_schedules' AND constraint_name='chk_date_mode') THEN
+    ALTER TABLE class_schedules ADD CONSTRAINT chk_date_mode CHECK (date_mode IN ('SINGLE','MULTIPLE','RECURRING'));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_name='class_schedules' AND constraint_name='chk_audience') THEN
+    ALTER TABLE class_schedules ADD CONSTRAINT chk_audience CHECK (audience IS NULL OR audience IN ('ALL','TEACHERS','STUDENTS','PARENTS'));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_name='class_schedules' AND constraint_name='chk_status') THEN
+    ALTER TABLE class_schedules ADD CONSTRAINT chk_status CHECK (status IN ('DRAFT','ACTIVE','CANCELLED','COMPLETED'));
+  END IF;
+END $$;
 
 -- Create indexes
 CREATE INDEX IF NOT EXISTS idx_cs_session ON class_schedules(assignment_session_id);
