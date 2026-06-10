@@ -421,6 +421,8 @@ function filterGroupChips(groupId, search) {
 // ── Teachers Panel ─────────────────────────────────────────────────────────────
 function renderTeachers() {
   var tbody = document.getElementById('teachersBody');
+  var searchInput = document.getElementById('teacherSearchInput');
+  if (searchInput) searchInput.value = '';
   tbody.innerHTML = '';
 
   if (!S.assignments.length) {
@@ -469,6 +471,29 @@ function renderTeachers() {
   });
 
   console.log('renderTeachers: total assignments =', S.assignments.length, 'total rows =', tbody.querySelectorAll('tr').length);
+}
+
+function filterTeachers() {
+  var searchInput = document.getElementById('teacherSearchInput');
+  var searchTerm = (searchInput ? searchInput.value : '').toLowerCase();
+  var tbody = document.getElementById('teachersBody');
+  var rows = tbody.querySelectorAll('tr');
+
+  rows.forEach(function (row) {
+    if (row.querySelector('td[colspan]')) {
+      row.style.display = '';
+      return;
+    }
+    var teacherName = row.cells[0] ? row.cells[0].textContent : '';
+    var department = row.cells[1] ? row.cells[1].textContent : '';
+    var combined = (teacherName + ' ' + department).toLowerCase();
+
+    if (searchTerm === '' || combined.includes(searchTerm)) {
+      row.style.display = '';
+    } else {
+      row.style.display = 'none';
+    }
+  });
 }
 
 function assignTeacher(teacherId, groupId) {

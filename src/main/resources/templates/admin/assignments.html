@@ -422,11 +422,20 @@
         <!-- Teachers & Assignments -->
         <div class="col-md-7">
           <div class="card border-0 shadow-sm h-100" style="border-radius:12px;">
-            <div class="card-header bg-white border-0 d-flex align-items-center justify-content-between pb-0 pt-3 px-3">
-              <span class="fw-semibold" style="font-size:.88rem;color:#1a2332;">Teachers &amp; Assignments</span>
-              <button class="btn btn-sm btn-outline-primary" style="font-size:.78rem;" onclick="openAssignGroupModal()">
-                <i class="bi bi-link-45deg me-1"></i>Assign Group
-              </button>
+            <div class="card-header bg-white border-0 pb-0 pt-3 px-3">
+              <div class="d-flex align-items-center justify-content-between mb-3">
+                <span class="fw-semibold" style="font-size:.88rem;color:#1a2332;">Teachers &amp; Assignments</span>
+                <button class="btn btn-sm btn-outline-primary" style="font-size:.78rem;" onclick="openAssignGroupModal()">
+                  <i class="bi bi-link-45deg me-1"></i>Assign Group
+                </button>
+              </div>
+              <div style="position:relative; margin-bottom:.75rem;">
+                <input type="text" id="teacherSearchInput" class="form-control form-control-sm"
+                       placeholder="Search by teacher name or department..."
+                       style="padding-left:2rem; font-size:.8rem;"
+                       onkeyup="filterTeachers()">
+                <i class="bi bi-search" style="position:absolute; left:.5rem; top:50%; transform:translateY(-50%); color:#6c757d; font-size:.85rem;"></i>
+              </div>
             </div>
             <div class="card-body p-0 overflow-auto" style="max-height:420px;">
               <table class="table table-sm table-hover align-middle mb-0" style="font-size:.82rem;">
