@@ -2682,24 +2682,32 @@ JS: `static/js/assignments.js`
 
 ```
 Card 1: Select Course     →  Card 2: Create Groups     →  Card 3: Assign Teachers
-(dropdown + scope radio)      (modal, student enrol)        (modal, teacher select)
+(dropdown + scope radio)      (modal, student enrol)        (modal, many-to-many pairs)
          ↓                           ↓                              ↓
   S.selectedCourseId           S.groups[]                  S.activatedTeacherIds[]
-  S.selectedScopeKey           S.maxPerGroup                S.assignments{}
+  S.selectedScopeKey           S.maxPerGroup                S.assignments[] (many-to-many)
 ```
+
+**Many-to-Many Support:** Same teacher can be assigned to multiple groups; same group can have multiple teachers. Displayed as separate table rows with edit/delete buttons per assignment pair.
+
+**Search & Filter:** Real-time teacher search by name/department in Teachers & Assignments card.
+
+**Edit Group:** Modal to add/remove students per group via checkboxes.
 
 #### Frontend State (`var S`)
 ```javascript
 var S = {
   nodes:            [],   // flat course_nodes from GET /api/admin/course-nodes
-  students:         [],   // StudentSummaryDto[] from GET /api/admin/students
-  teachers:         [],   // TeacherSummaryDto[] from GET /api/admin/teachers
+  allStudents:      [],   // All students from API (unfiltered)
+  allTeachers:      [],   // All teachers from API (unfiltered)
+  students:         [],   // StudentSummaryDto[] filtered by selected course
+  teachers:         [],   // TeacherSummaryDto[] filtered by selected course
   selectedCourseId: null,
   maxPerGroup:      30,
   groups:           [],   // {id(local), name, desc, period, studentIds:[]}
-  assignments:      {},   // teacherProfileId -> groupLocalId
+  assignments:      [],   // [{teacherId, groupId}, ...] — many-to-many pairs
   nextGroupId:      1,
-  activatedTeacherIds: [], // teacher profile IDs added via modal
+  activatedTeacherIds: [], // unique teacher IDs from S.assignments
   scopeNodes:       { course: null, subject: null, board: null },
   selectedScopeKey: null   // 'course' | 'subject' | 'board'
 };
@@ -2721,15 +2729,24 @@ var S = {
       "description":"Morning batch",
       "period":     "2025-2026",
       "studentIds": [1, 3, 5]
+    },
+    {
+      "localId":    2,
+      "name":       "Group Beta",
+      "description":"Afternoon batch",
+      "period":     "2025-2026",
+      "studentIds": [2, 4, 6]
     }
   ],
   "teacherAssignments": [
-    { "teacherId": 1, "groupLocalId": 1 }
+    { "teacherId": 1, "groupLocalId": 1 },
+    { "teacherId": 1, "groupLocalId": 2 },
+    { "teacherId": 2, "groupLocalId": 1 }
   ]
 }
 ```
 
-`localId` — ephemeral frontend ID; service maps it to the saved `assignment_groups.id` via `Map<Integer, AssignmentGroup>`. `teacherId` = `teacher_profiles.id`. `studentIds` = `student_profiles.id[]`.
+`localId` — ephemeral frontend ID; service maps it to the saved `assignment_groups.id` via `Map<Integer, AssignmentGroup>`. `teacherId` = `teacher_profiles.id`. `studentIds` = `student_profiles.id[]`. Multiple `teacherAssignments` with same `teacherId` indicate many-to-many (same teacher in multiple groups).
 
 **Response:**
 ```json
@@ -2828,8 +2845,10 @@ CREATE TABLE assignment_teacher_mappings (
     session_id         BIGINT NOT NULL REFERENCES assignment_sessions(id) ON DELETE CASCADE,
     teacher_profile_id BIGINT NOT NULL REFERENCES teacher_profiles(id) ON DELETE CASCADE,
     group_id           BIGINT REFERENCES assignment_groups(id) ON DELETE SET NULL,
-    UNIQUE (session_id, teacher_profile_id)
+    UNIQUE (session_id, teacher_profile_id, group_id)
 );
+-- V12: Changed from UNIQUE(session_id, teacher_profile_id) to support many-to-many:
+--      Same teacher can now be assigned to multiple groups in same session.
 ```
 
 > **Key constraint:** `assignment_group_students` → `student_profiles(id)` and `assignment_teacher_mappings` → `teacher_profiles(id)`. These are profile IDs, not `users.id`. The APIs (`GET /api/admin/students`, `GET /api/admin/teachers`) return profile IDs in their `id` field.
