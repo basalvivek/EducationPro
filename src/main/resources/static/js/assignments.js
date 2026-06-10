@@ -34,9 +34,9 @@ var S = {
   selectedCourseId: null,
   maxPerGroup:      30,
   groups:           [],   // {id, name, desc, period, studentIds:[]}
-  assignments:      {},   // teacherId -> groupId
+  assignments:      [],   // [{teacherId, groupId}, ...] — many-to-many
   nextGroupId:          1,
-  activatedTeacherIds:  [],  // teachers added via Assign Teachers modal
+  activatedTeacherIds:  [],  // teachers with any assignment
   // Scope selection (radio in info panel)
   scopeNodes:           { course: null, subject: null, board: null },
   selectedScopeKey:     null   // 'course' | 'subject' | 'board'
@@ -413,15 +413,7 @@ function renderTeachers() {
   var tbody = document.getElementById('teachersBody');
   tbody.innerHTML = '';
 
-  var active = S.teachers.filter(function (t) {
-    return S.activatedTeacherIds.indexOf(t.id) !== -1;
-  });
-
-  console.log('renderTeachers: activatedTeacherIds =', S.activatedTeacherIds);
-  console.log('renderTeachers: active teachers =', active.map(function (t) { return {id: t.id, name: t.firstName + ' ' + t.lastName}; }));
-  console.log('renderTeachers: total active =', active.length);
-
-  if (!active.length) {
+  if (!S.assignments.length) {
     tbody.innerHTML =
       '<tr><td colspan="3" class="text-center text-muted py-5 small">' +
         '<div class="mb-2"><i class="bi bi-person-badge" style="font-size:1.6rem;color:#c4b5fd;"></i></div>' +
@@ -431,35 +423,13 @@ function renderTeachers() {
     return;
   }
 
-  active.forEach(function (t, idx) {
-    var assignedGroupId = S.assignments[t.id];
-    var assignedGroup   = assignedGroupId ? S.groups.find(function (g) { return g.id === assignedGroupId; }) : null;
-    var initials        = ((t.firstName || '?')[0] + (t.lastName || '?')[0]).toUpperCase();
+  S.assignments.forEach(function (assignment, rowIdx) {
+    var teacher = S.teachers.find(function (t) { return t.id === assignment.teacherId; });
+    var group   = S.groups.find(function (g) { return g.id === assignment.groupId; });
 
-    console.log('renderTeachers: rendering teacher', idx + 1, '-', t.firstName, t.lastName, '(id:', t.id + ')');
+    if (!teacher || !group) return;
 
-    var assignmentHtml;
-    if (assignedGroup) {
-      assignmentHtml =
-        '<div class="d-flex align-items-center gap-2">' +
-          '<span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">' + escHtml(assignedGroup.name) + '</span>' +
-          '<button class="btn btn-xs btn-outline-secondary" style="padding:.25rem .35rem;font-size:.65rem;" title="Edit" onclick="openEditAssignmentModal(' + t.id + ', ' + assignedGroupId + ')">' +
-            '<i class="bi bi-pencil"></i>' +
-          '</button>' +
-          '<button class="btn btn-xs btn-outline-danger" style="padding:.25rem .35rem;font-size:.65rem;" title="Delete" onclick="deleteAssignment(' + t.id + ')">' +
-            '<i class="bi bi-trash"></i>' +
-          '</button>' +
-        '</div>';
-    } else {
-      var opts = S.groups.map(function (g) {
-        return '<option value="' + g.id + '">' + escHtml(g.name) + '</option>';
-      }).join('');
-      assignmentHtml =
-        '<select class="form-select form-select-sm" style="min-width:130px; font-size:.8rem;" ' +
-          'onchange="assignTeacher(' + t.id + ', this.value)">' +
-          '<option value="">— Assign group —</option>' + opts +
-        '</select>';
-    }
+    var initials = ((teacher.firstName || '?')[0] + (teacher.lastName || '?')[0]).toUpperCase();
 
     var tr = document.createElement('tr');
     tr.innerHTML =
@@ -467,23 +437,43 @@ function renderTeachers() {
         '<div class="d-flex align-items-center gap-2">' +
           '<div class="teacher-avatar-sm flex-shrink-0">' + escHtml(initials) + '</div>' +
           '<div>' +
-            '<div class="fw-medium small">' + escHtml(t.firstName) + ' ' + escHtml(t.lastName) + '</div>' +
-            '<div class="text-muted" style="font-size:.72rem;">' + escHtml(t.teacherId || '') + '</div>' +
+            '<div class="fw-medium small">' + escHtml(teacher.firstName) + ' ' + escHtml(teacher.lastName) + '</div>' +
+            '<div class="text-muted" style="font-size:.72rem;">' + escHtml(teacher.teacherId || '') + '</div>' +
           '</div>' +
         '</div>' +
       '</td>' +
-      '<td class="small text-muted">' + escHtml(t.department || t.designation || '—') + '</td>' +
-      '<td>' + assignmentHtml + '</td>' +
+      '<td class="small text-muted">' + escHtml(teacher.department || teacher.designation || '—') + '</td>' +
+      '<td>' +
+        '<div class="d-flex align-items-center gap-2">' +
+          '<span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">' + escHtml(group.name) + '</span>' +
+          '<button class="btn btn-xs btn-outline-secondary" style="padding:.25rem .35rem;font-size:.65rem;" title="Edit" onclick="openEditAssignmentModal(' + assignment.teacherId + ', ' + assignment.groupId + ')">' +
+            '<i class="bi bi-pencil"></i>' +
+          '</button>' +
+          '<button class="btn btn-xs btn-outline-danger" style="padding:.25rem .35rem;font-size:.65rem;" title="Delete" onclick="deleteAssignment(' + assignment.teacherId + ', ' + assignment.groupId + ')">' +
+            '<i class="bi bi-trash"></i>' +
+          '</button>' +
+        '</div>' +
+      '</td>' +
       '<td></td>';
     tbody.appendChild(tr);
   });
 
-  console.log('renderTeachers: total rows added =', tbody.querySelectorAll('tr').length);
+  console.log('renderTeachers: total assignments =', S.assignments.length, 'total rows =', tbody.querySelectorAll('tr').length);
 }
 
 function assignTeacher(teacherId, groupId) {
-  if (groupId) S.assignments[teacherId] = parseInt(groupId, 10);
-  else delete S.assignments[teacherId];
+  teacherId = parseInt(teacherId, 10);
+  groupId = parseInt(groupId, 10);
+
+  if (groupId) {
+    // Add assignment if not already exists
+    if (!S.assignments.find(function (a) { return a.teacherId === teacherId && a.groupId === groupId; })) {
+      S.assignments.push({ teacherId: teacherId, groupId: groupId });
+      if (S.activatedTeacherIds.indexOf(teacherId) === -1) {
+        S.activatedTeacherIds.push(teacherId);
+      }
+    }
+  }
   renderTeachers();
   updateSummary();
 }
@@ -586,8 +576,14 @@ function confirmAssignTeachers() {
 function updateSummary() {
   setText('sumStudents',  S.students.length);
   setText('sumGroups',    S.groups.length);
-  setText('sumAssigned',  Object.keys(S.assignments).length);
-  var assignedGroupIds = Object.values(S.assignments);
+  var uniqueTeachers = [];
+  S.assignments.forEach(function (a) {
+    if (uniqueTeachers.indexOf(a.teacherId) === -1) {
+      uniqueTeachers.push(a.teacherId);
+    }
+  });
+  setText('sumAssigned',  uniqueTeachers.length);
+  var assignedGroupIds = S.assignments.map(function (a) { return a.groupId; });
   var unassigned = S.groups.filter(function (g) {
     return assignedGroupIds.indexOf(g.id) === -1;
   }).length;
@@ -613,10 +609,12 @@ function restoreSession(session) {
   S.nextGroupId = maxId + 1;
 
   S.activatedTeacherIds = [];
-  S.assignments = {};
+  S.assignments = [];
   (session.teacherAssignments || []).forEach(function (ta) {
     if (S.activatedTeacherIds.indexOf(ta.teacherId) === -1) S.activatedTeacherIds.push(ta.teacherId);
-    if (ta.groupId) S.assignments[ta.teacherId] = ta.groupId;
+    if (ta.groupId || ta.groupLocalId) {
+      S.assignments.push({ teacherId: ta.teacherId, groupId: ta.groupId || ta.groupLocalId });
+    }
   });
 
   renderGroups();
@@ -641,8 +639,8 @@ function buildSavePayload(status) {
     groups: S.groups.map(function (g) {
       return { localId: g.id, name: g.name, description: g.desc, period: g.period, studentIds: g.studentIds };
     }),
-    teacherAssignments: S.activatedTeacherIds.map(function (tid) {
-      return { teacherId: tid, groupLocalId: S.assignments[tid] || null };
+    teacherAssignments: S.assignments.map(function (a) {
+      return { teacherId: a.teacherId, groupLocalId: a.groupId };
     })
   };
 }
@@ -702,7 +700,13 @@ function openEditAssignmentModal(teacherId, currentGroupId) {
   if (newGroupName) {
     var newGroup = S.groups.find(function (g) { return g.name === newGroupName; });
     if (newGroup) {
-      S.assignments[teacherId] = newGroup.id;
+      teacherId = parseInt(teacherId, 10);
+      // Remove old assignment
+      S.assignments = S.assignments.filter(function (a) {
+        return !(a.teacherId === teacherId && a.groupId === currentGroupId);
+      });
+      // Add new assignment
+      S.assignments.push({ teacherId: teacherId, groupId: newGroup.id });
       renderTeachers();
       updateSummary();
       showToast('Assignment updated to ' + newGroupName, 'success');
@@ -710,9 +714,15 @@ function openEditAssignmentModal(teacherId, currentGroupId) {
   }
 }
 
-function deleteAssignment(teacherId) {
-  if (confirm('Remove this teacher assignment?')) {
-    delete S.assignments[teacherId];
+function deleteAssignment(teacherId, groupId) {
+  if (confirm('Remove this assignment?')) {
+    S.assignments = S.assignments.filter(function (a) {
+      return !(a.teacherId === parseInt(teacherId, 10) && a.groupId === parseInt(groupId, 10));
+    });
+    // Remove teacher from activatedTeacherIds if they have no more assignments
+    if (!S.assignments.find(function (a) { return a.teacherId === parseInt(teacherId, 10); })) {
+      S.activatedTeacherIds = S.activatedTeacherIds.filter(function (id) { return id !== parseInt(teacherId, 10); });
+    }
     renderTeachers();
     updateSummary();
     showToast('Assignment removed', 'success');
@@ -831,8 +841,8 @@ function addTeacherGroupPair() {
     showToast('This pair already in list', 'warning'); return;
   }
 
-  if (agPairs.find(function (p) { return p.teacherId === teacherId; })) {
-    showToast('Teacher already assigned in this batch. Remove or edit existing.', 'warning'); return;
+  if (S.assignments.find(function (a) { return a.teacherId === teacherId && a.groupId === groupId; })) {
+    showToast('Already assigned', 'warning'); return;
   }
 
   agPairs.push({ teacherId: teacherId, groupId: groupId });
@@ -879,23 +889,18 @@ function renderAgPairs() {
 function saveAssignGroups() {
   if (!agPairs.length) { showToast('Add at least one assignment', 'warning'); return; }
 
-  console.log('Saving pairs:', agPairs);
-  console.log('Before: activatedTeacherIds =', S.activatedTeacherIds);
-  console.log('Before: assignments =', S.assignments);
-
   agPairs.forEach(function (pair) {
-    S.assignments[pair.teacherId] = pair.groupId;
+    if (!S.assignments.find(function (a) { return a.teacherId === pair.teacherId && a.groupId === pair.groupId; })) {
+      S.assignments.push({ teacherId: pair.teacherId, groupId: pair.groupId });
+    }
     if (S.activatedTeacherIds.indexOf(pair.teacherId) === -1) {
       S.activatedTeacherIds.push(pair.teacherId);
     }
   });
 
-  console.log('After: activatedTeacherIds =', S.activatedTeacherIds);
-  console.log('After: assignments =', S.assignments);
-
   bootstrap.Modal.getInstance(document.getElementById('assignGroupModal')).hide();
   renderTeachers();
   updateSummary();
 
-  showToast(agPairs.length + ' assignment(s) saved', 'success');
+  showToast(agPairs.length + ' assignment(s) added', 'success');
 }
