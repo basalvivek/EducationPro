@@ -102,13 +102,13 @@ public class ScheduleService {
 
     public ScheduleResponseDto getSchedule(Long id) {
         ClassSchedule schedule = scheduleRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(404, "SCHEDULE_008", "Schedule not found"));
+                .orElseThrow(() -> new BusinessException("Schedule not found"));
         return mapToResponseDto(schedule);
     }
 
     public ScheduleResponseDto updateSchedule(Long id, CreateScheduleRequest req) {
         ClassSchedule schedule = scheduleRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(404, "SCHEDULE_008", "Schedule not found"));
+                .orElseThrow(() -> new BusinessException("Schedule not found"));
 
         validateScheduleRequest(req);
         if (ScheduleTab.CLASSES.equals(req.scheduleTab())) {
@@ -159,12 +159,12 @@ public class ScheduleService {
 
     public void deleteSchedule(Long id) {
         ClassSchedule schedule = scheduleRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(404, "SCHEDULE_008", "Schedule not found"));
+                .orElseThrow(() -> new BusinessException("Schedule not found"));
         scheduleRepository.delete(schedule);
     }
 
-    public List<ScheduleCalendarDto> getCalendarData(LocalDate from, LocalDate to, ScheduleFilters filters) {
-        List<ClassSchedule> schedules = scheduleRepository.findByDateRangeAndFilters(from, to, filters);
+    public List<ScheduleCalendarDto> getCalendarData(LocalDate from, LocalDate to, Long teacherId, Long groupId, String type, String status) {
+        List<ClassSchedule> schedules = scheduleRepository.findByDateRangeAndFilters(from, to, teacherId, groupId, type, status);
 
         List<ScheduleCalendarDto> result = new ArrayList<>();
         for (ClassSchedule schedule : schedules) {
@@ -304,7 +304,7 @@ public class ScheduleService {
                 .stream()
                 .map(tp -> new TeacherDropdownDto(
                         tp.getId(),
-                        tp.getUser().getFirstName() + " " + tp.getUser().getLastName(),
+                        tp.getUser() != null ? tp.getUser().getFullName() : "",
                         ""
                 ))
                 .toList();
@@ -315,9 +315,9 @@ public class ScheduleService {
                 .stream()
                 .map(ag -> new GroupDropdownDto(
                         ag.getId(),
-                        ag.getGroupName(),
-                        ag.getStudents() != null ? ag.getStudents().size() : 0,
-                        ag.getSession() != null ? ag.getSession().getAcademicYear() : "",
+                        ag.getName(),
+                        ag.getStudentProfileIds() != null ? ag.getStudentProfileIds().size() : 0,
+                        "",
                         ag.getSession() != null ? ag.getSession().getId() : null
                 ))
                 .toList();
@@ -325,24 +325,24 @@ public class ScheduleService {
 
     public List<SubjectDropdownDto> getSubjectsForSession(Long sessionId) {
         AssignmentSession session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new BusinessException(404, "SESSION_NOT_FOUND", "Session not found"));
+                .orElseThrow(() -> new BusinessException("Session not found"));
 
         CourseNode scopeNode = session.getScopeNode();
         if (scopeNode == null) {
             return List.of();
         }
 
-        return courseNodeRepository.findByParentId(scopeNode.getId())
-                .stream()
+        return courseNodeRepository.findAll().stream()
+                .filter(node -> scopeNode.getId().equals(node.getParentId()))
                 .filter(node -> !NodeType.QUESTION.equals(node.getType()))
-                .map(node -> new SubjectDropdownDto(node.getId(), node.getName()))
+                .map(node -> new SubjectDropdownDto(node.getId(), node.getTitle()))
                 .toList();
     }
 
     public List<ClassroomDto> getClassrooms() {
-        return classroomRepository.findByIsActive(true)
-                .stream()
-                .map(c -> new ClassroomDto(c.getId(), c.getName(), c.getRoomNumber(), c.getCapacity()))
+        return classroomRepository.findAll().stream()
+                .filter(c -> c.getIsActive() != null && c.getIsActive())
+                .map(c -> new ClassroomDto(c.getId(), c.getName(), c.getRoomCode(), c.getCapacity()))
                 .toList();
     }
 
@@ -370,31 +370,31 @@ public class ScheduleService {
 
     private void validateScheduleRequest(CreateScheduleRequest req) {
         if (req.startTime().isAfter(req.endTime())) {
-            throw new BusinessException(400, "SCHEDULE_002", "End time must be after start time");
+            throw new BusinessException("End time must be after start time");
         }
 
         if (DateMode.MULTIPLE.equals(req.dateMode())) {
             if (req.multipleDates() == null || req.multipleDates().size() < 2) {
-                throw new BusinessException(400, "SCHEDULE_003", "Multiple dates mode requires at least 2 dates");
+                throw new BusinessException("Multiple dates mode requires at least 2 dates");
             }
         }
 
         if (DateMode.RECURRING.equals(req.dateMode())) {
             if (req.recurrence() == null) {
-                throw new BusinessException(400, "SCHEDULE_004", "Recurring schedule requires recurrence configuration");
+                throw new BusinessException("Recurring schedule requires recurrence configuration");
             }
             if (RecurrencePattern.WEEKLY.equals(req.recurrence().pattern()) &&
                 (req.recurrence().daysOfWeek() == null || req.recurrence().daysOfWeek().isEmpty())) {
-                throw new BusinessException(400, "SCHEDULE_005", "Weekly recurrence requires at least one day of week selected");
+                throw new BusinessException("Weekly recurrence requires at least one day of week selected");
             }
             if (EndCondition.UNTIL_DATE.equals(req.recurrence().endCondition())) {
                 if (req.recurrence().endDate() == null || !req.recurrence().endDate().isAfter(req.startDate())) {
-                    throw new BusinessException(400, "SCHEDULE_006", "Until-date end condition requires an end date after the start date");
+                    throw new BusinessException("Until-date end condition requires an end date after the start date");
                 }
             }
             if (EndCondition.COUNT.equals(req.recurrence().endCondition())) {
                 if (req.recurrence().occurrenceCount() == null || req.recurrence().occurrenceCount() < 1 || req.recurrence().occurrenceCount() > 365) {
-                    throw new BusinessException(400, "SCHEDULE_007", "Occurrence count must be between 1 and 365");
+                    throw new BusinessException("Occurrence count must be between 1 and 365");
                 }
             }
         }
@@ -403,7 +403,7 @@ public class ScheduleService {
     private void validateAssignmentPairing(Long teacherProfileId, Long groupId, Long subjectNodeId) {
         AssignmentTeacherMapping mapping = teacherMappingRepository.findByTeacherAndGroup(teacherProfileId, groupId);
         if (mapping == null) {
-            throw new BusinessException(400, "SCHEDULE_001", "Teacher is not assigned to this group in any active session");
+            throw new BusinessException("Teacher is not assigned to this group in any active session");
         }
 
         AssignmentSession session = mapping.getSession();
@@ -411,7 +411,7 @@ public class ScheduleService {
         CourseNode subjectNode = courseNodeRepository.findById(subjectNodeId).orElse(null);
 
         if (subjectNode == null || !isAncestorOrEqual(scopeNode, subjectNode)) {
-            throw new BusinessException(400, "SCHEDULE_001", "Subject node is not in the scope of the assignment session");
+            throw new BusinessException("Subject node is not in the scope of the assignment session");
         }
     }
 
@@ -421,7 +421,8 @@ public class ScheduleService {
             if (current.getId().equals(ancestor.getId())) {
                 return true;
             }
-            current = current.getParent();
+            if (current.getParentId() == null) break;
+            current = courseNodeRepository.findById(current.getParentId()).orElse(null);
         }
         return false;
     }
@@ -506,12 +507,12 @@ public class ScheduleService {
     }
 
     private ScheduleResponseDto mapToResponseDto(ClassSchedule schedule) {
-        String teacherName = schedule.getTeacher() != null ?
-                schedule.getTeacher().getUser().getFirstName() + " " + schedule.getTeacher().getUser().getLastName() : "";
-        String groupName = schedule.getAssignmentGroup() != null ? schedule.getAssignmentGroup().getGroupName() : "";
-        int studentCount = schedule.getAssignmentGroup() != null && schedule.getAssignmentGroup().getStudents() != null ?
-                schedule.getAssignmentGroup().getStudents().size() : 0;
-        String subjectName = schedule.getSubject() != null ? schedule.getSubject().getName() : "";
+        String teacherName = schedule.getTeacher() != null && schedule.getTeacher().getUser() != null ?
+                schedule.getTeacher().getUser().getFullName() : "";
+        String groupName = schedule.getAssignmentGroup() != null ? schedule.getAssignmentGroup().getName() : "";
+        int studentCount = schedule.getAssignmentGroup() != null && schedule.getAssignmentGroup().getStudentProfileIds() != null ?
+                schedule.getAssignmentGroup().getStudentProfileIds().size() : 0;
+        String subjectName = schedule.getSubject() != null ? schedule.getSubject().getTitle() : "";
         String classroomName = schedule.getClassroom() != null ? schedule.getClassroom().getName() : "";
 
         String durationLabel = getDurationLabel(schedule.getStartTime(), schedule.getEndTime());
@@ -583,12 +584,12 @@ public class ScheduleService {
 
     private ScheduleCalendarDto mapToCalendarDto(ClassSchedule schedule, LocalDate date) {
         String title = ScheduleTab.CLASSES.equals(schedule.getScheduleTab()) ?
-                (schedule.getSubject() != null ? schedule.getSubject().getName() : "") :
+                (schedule.getSubject() != null ? schedule.getSubject().getTitle() : "") :
                 schedule.getEventTitle();
 
-        String teacherName = schedule.getTeacher() != null ?
-                schedule.getTeacher().getUser().getFirstName() + " " + schedule.getTeacher().getUser().getLastName() : "";
-        String groupName = schedule.getAssignmentGroup() != null ? schedule.getAssignmentGroup().getGroupName() : "";
+        String teacherName = schedule.getTeacher() != null && schedule.getTeacher().getUser() != null ?
+                schedule.getTeacher().getUser().getFullName() : "";
+        String groupName = schedule.getAssignmentGroup() != null ? schedule.getAssignmentGroup().getName() : "";
 
         String colorClass = switch (schedule.getScheduleTab()) {
             case CLASSES -> "schedule-card--classes";
@@ -634,7 +635,7 @@ public class ScheduleService {
 
     private String buildScheduleTitle(ClassSchedule schedule) {
         if (ScheduleTab.CLASSES.equals(schedule.getScheduleTab())) {
-            return schedule.getSubject() != null ? schedule.getSubject().getName() : "Class";
+            return schedule.getSubject() != null ? schedule.getSubject().getTitle() : "Class";
         }
         return schedule.getEventTitle() != null ? schedule.getEventTitle() : "Event";
     }

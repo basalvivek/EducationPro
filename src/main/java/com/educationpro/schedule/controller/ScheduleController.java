@@ -2,7 +2,6 @@ package com.educationpro.schedule.controller;
 
 import com.educationpro.schedule.dto.*;
 import com.educationpro.schedule.service.ScheduleService;
-import com.educationpro.dto.ApiResponse;
 import com.educationpro.schedule.domain.ConflictType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +13,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -25,27 +25,26 @@ public class ScheduleController {
     private final ScheduleService scheduleService;
 
     @PostMapping
-    public ResponseEntity<ApiResponse<ScheduleResponseDto>> createSchedule(
+    public ResponseEntity<ScheduleResponseDto> createSchedule(
             @Valid @RequestBody CreateScheduleRequest req,
             Authentication auth) {
         Long adminId = extractAdminId(auth);
         ScheduleResponseDto response = scheduleService.createSchedule(req, adminId);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Schedule created successfully", response));
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<ScheduleResponseDto>> getSchedule(@PathVariable Long id) {
+    public ResponseEntity<ScheduleResponseDto> getSchedule(@PathVariable Long id) {
         ScheduleResponseDto response = scheduleService.getSchedule(id);
-        return ResponseEntity.ok(ApiResponse.success("Schedule retrieved", response));
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<ScheduleResponseDto>> updateSchedule(
+    public ResponseEntity<ScheduleResponseDto> updateSchedule(
             @PathVariable Long id,
             @Valid @RequestBody CreateScheduleRequest req) {
         ScheduleResponseDto response = scheduleService.updateSchedule(id, req);
-        return ResponseEntity.ok(ApiResponse.success("Schedule updated", response));
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
@@ -55,7 +54,7 @@ public class ScheduleController {
     }
 
     @GetMapping("/calendar")
-    public ResponseEntity<ApiResponse<List<ScheduleCalendarDto>>> getCalendar(
+    public ResponseEntity<List<ScheduleCalendarDto>> getCalendar(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) Long teacherId,
@@ -63,39 +62,41 @@ public class ScheduleController {
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String status) {
 
-        ScheduleFilters filters = new ScheduleFilters(teacherId, groupId, type, null, null, status);
-        List<ScheduleCalendarDto> response = scheduleService.getCalendarData(from, to, filters);
-        return ResponseEntity.ok(ApiResponse.success("Calendar data retrieved", response));
+        List<ScheduleCalendarDto> response = scheduleService.getCalendarData(from, to, teacherId, groupId, type, status);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/stats")
-    public ResponseEntity<ApiResponse<ScheduleStatsDto>> getStats() {
+    public ResponseEntity<ScheduleStatsDto> getStats() {
         ScheduleStatsDto response = scheduleService.getStats();
-        return ResponseEntity.ok(ApiResponse.success("Stats retrieved", response));
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/session/{sessionId}")
-    public ResponseEntity<ApiResponse<List<ScheduleCalendarDto>>> getSessionSchedules(@PathVariable Long sessionId) {
+    public ResponseEntity<List<ScheduleCalendarDto>> getSessionSchedules(@PathVariable Long sessionId) {
         List<ScheduleCalendarDto> response = scheduleService.getSessionSchedules(sessionId);
-        return ResponseEntity.ok(ApiResponse.success("Session schedules retrieved", response));
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{id}/cancel")
-    public ResponseEntity<ApiResponse<ScheduleResponseDto>> cancelSchedule(
+    public ResponseEntity<ScheduleResponseDto> cancelSchedule(
             @PathVariable Long id,
             @RequestBody(required = false) CancelScheduleRequest req) {
         ScheduleResponseDto response = scheduleService.getSchedule(id);
-        return ResponseEntity.ok(ApiResponse.success("Schedule cancelled", response));
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/conflicts")
-    public ResponseEntity<ApiResponse<List<ConflictSummaryDto>>> getConflicts(
+    public ResponseEntity<List<ConflictSummaryDto>> getConflicts(
             @RequestParam(required = false) String type) {
-        ConflictType conflictType = type != null ? ConflictType.valueOf(type) : null;
-        List<ConflictSummaryDto> response = conflictType != null ?
-                scheduleService.getUnresolvedConflicts(conflictType) :
-                scheduleService.getUnresolvedConflicts(null);
-        return ResponseEntity.ok(ApiResponse.success("Conflicts retrieved", response));
+        List<ConflictSummaryDto> response;
+        if (type != null) {
+            ConflictType conflictType = ConflictType.valueOf(type);
+            response = scheduleService.getUnresolvedConflicts(conflictType);
+        } else {
+            response = new ArrayList<>();
+        }
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/conflicts/{id}/resolve")
@@ -104,36 +105,36 @@ public class ScheduleController {
     }
 
     @GetMapping("/teachers")
-    public ResponseEntity<ApiResponse<List<TeacherDropdownDto>>> getTeachers() {
+    public ResponseEntity<List<TeacherDropdownDto>> getTeachers() {
         List<TeacherDropdownDto> response = scheduleService.getTeachersForDropdown();
-        return ResponseEntity.ok(ApiResponse.success("Teachers retrieved", response));
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/groups")
-    public ResponseEntity<ApiResponse<List<GroupDropdownDto>>> getGroups(
+    public ResponseEntity<List<GroupDropdownDto>> getGroups(
             @RequestParam Long teacherProfileId) {
         List<GroupDropdownDto> response = scheduleService.getGroupsForTeacher(teacherProfileId);
-        return ResponseEntity.ok(ApiResponse.success("Groups retrieved", response));
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/subjects")
-    public ResponseEntity<ApiResponse<List<SubjectDropdownDto>>> getSubjects(
+    public ResponseEntity<List<SubjectDropdownDto>> getSubjects(
             @RequestParam Long sessionId) {
         List<SubjectDropdownDto> response = scheduleService.getSubjectsForSession(sessionId);
-        return ResponseEntity.ok(ApiResponse.success("Subjects retrieved", response));
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/classrooms")
-    public ResponseEntity<ApiResponse<List<ClassroomDto>>> getClassrooms() {
+    public ResponseEntity<List<ClassroomDto>> getClassrooms() {
         List<ClassroomDto> response = scheduleService.getClassrooms();
-        return ResponseEntity.ok(ApiResponse.success("Classrooms retrieved", response));
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/check-conflicts")
-    public ResponseEntity<ApiResponse<List<ConflictSummaryDto>>> checkConflicts(
+    public ResponseEntity<List<ConflictSummaryDto>> checkConflicts(
             @Valid @RequestBody CreateScheduleRequest req) {
         List<ConflictSummaryDto> response = scheduleService.detectConflicts(req);
-        return ResponseEntity.ok(ApiResponse.success("Conflict check complete", response));
+        return ResponseEntity.ok(response);
     }
 
     private Long extractAdminId(Authentication auth) {
