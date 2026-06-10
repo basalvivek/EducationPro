@@ -431,10 +431,12 @@ function renderTeachers() {
     return;
   }
 
-  active.forEach(function (t) {
+  active.forEach(function (t, idx) {
     var assignedGroupId = S.assignments[t.id];
     var assignedGroup   = assignedGroupId ? S.groups.find(function (g) { return g.id === assignedGroupId; }) : null;
     var initials        = ((t.firstName || '?')[0] + (t.lastName || '?')[0]).toUpperCase();
+
+    console.log('renderTeachers: rendering teacher', idx + 1, '-', t.firstName, t.lastName, '(id:', t.id + ')');
 
     var assignmentHtml;
     if (assignedGroup) {
@@ -475,6 +477,8 @@ function renderTeachers() {
       '<td></td>';
     tbody.appendChild(tr);
   });
+
+  console.log('renderTeachers: total rows added =', tbody.querySelectorAll('tr').length);
 }
 
 function assignTeacher(teacherId, groupId) {
