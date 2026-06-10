@@ -427,13 +427,28 @@ function renderTeachers() {
     var assignedGroup   = assignedGroupId ? S.groups.find(function (g) { return g.id === assignedGroupId; }) : null;
     var initials        = ((t.firstName || '?')[0] + (t.lastName || '?')[0]).toUpperCase();
 
-    var badgeHtml = assignedGroup
-      ? '<span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">' + escHtml(assignedGroup.name) + '</span>'
-      : '<span class="badge bg-light text-muted border" style="font-size:.72rem;">Not Assigned</span>';
-
-    var opts = S.groups.map(function (g) {
-      return '<option value="' + g.id + '"' + (assignedGroupId === g.id ? ' selected' : '') + '>' + escHtml(g.name) + '</option>';
-    }).join('');
+    var assignmentHtml;
+    if (assignedGroup) {
+      assignmentHtml =
+        '<div class="d-flex align-items-center gap-2">' +
+          '<span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">' + escHtml(assignedGroup.name) + '</span>' +
+          '<button class="btn btn-xs btn-outline-secondary" style="padding:.25rem .35rem;font-size:.65rem;" title="Edit" onclick="openEditAssignmentModal(' + t.id + ', ' + assignedGroupId + ')">' +
+            '<i class="bi bi-pencil"></i>' +
+          '</button>' +
+          '<button class="btn btn-xs btn-outline-danger" style="padding:.25rem .35rem;font-size:.65rem;" title="Delete" onclick="deleteAssignment(' + t.id + ')">' +
+            '<i class="bi bi-trash"></i>' +
+          '</button>' +
+        '</div>';
+    } else {
+      var opts = S.groups.map(function (g) {
+        return '<option value="' + g.id + '">' + escHtml(g.name) + '</option>';
+      }).join('');
+      assignmentHtml =
+        '<select class="form-select form-select-sm" style="min-width:130px; font-size:.8rem;" ' +
+          'onchange="assignTeacher(' + t.id + ', this.value)">' +
+          '<option value="">— Assign group —</option>' + opts +
+        '</select>';
+    }
 
     var tr = document.createElement('tr');
     tr.innerHTML =
@@ -447,13 +462,7 @@ function renderTeachers() {
         '</div>' +
       '</td>' +
       '<td class="small text-muted">' + escHtml(t.department || t.designation || '—') + '</td>' +
-      '<td>' + badgeHtml + '</td>' +
-      '<td>' +
-        '<select class="form-select form-select-sm" style="min-width:130px; font-size:.8rem;" ' +
-          'onchange="assignTeacher(' + t.id + ', this.value)">' +
-          '<option value="">— Assign group —</option>' + opts +
-        '</select>' +
-      '</td>';
+      '<td>' + assignmentHtml + '</td>';
     tbody.appendChild(tr);
   });
 }
@@ -651,6 +660,49 @@ function postSave(status, toastType, btnId) {
   .finally(function () {
     if (btn) { btn.disabled = false; btn.innerHTML = origLabel; }
   });
+}
+
+function openEditAssignmentModal(teacherId, currentGroupId) {
+  var teacher = S.teachers.find(function (t) { return t.id === teacherId; });
+  if (!teacher) return;
+
+  var groupOptions = S.groups.map(function (g) {
+    return (g.id === currentGroupId ? '✓ ' : '') + g.name;
+  }).join('\n');
+
+  var groupList = '';
+  S.groups.forEach(function (g) {
+    groupList += (g.id === currentGroupId ? '[CURRENT] ' : '') + g.name + '\n';
+  });
+
+  var selectedName = S.groups.find(function (g) { return g.id === currentGroupId; });
+  selectedName = selectedName ? selectedName.name : 'Unknown';
+
+  var newGroupName = prompt(
+    'Edit assignment for: ' + teacher.firstName + ' ' + teacher.lastName + '\n\n' +
+    'Current group: ' + selectedName + '\n\n' +
+    'Select new group:\n' + groupList,
+    selectedName
+  );
+
+  if (newGroupName) {
+    var newGroup = S.groups.find(function (g) { return g.name === newGroupName; });
+    if (newGroup) {
+      S.assignments[teacherId] = newGroup.id;
+      renderTeachers();
+      updateSummary();
+      showToast('Assignment updated to ' + newGroupName, 'success');
+    }
+  }
+}
+
+function deleteAssignment(teacherId) {
+  if (confirm('Remove this teacher assignment?')) {
+    delete S.assignments[teacherId];
+    renderTeachers();
+    updateSummary();
+    showToast('Assignment removed', 'success');
+  }
 }
 
 function saveAsDraft()   { postSave('DRAFT', 'info',    'btnSaveDraft'); }
