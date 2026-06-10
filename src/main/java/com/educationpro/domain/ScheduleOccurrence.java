@@ -1,13 +1,14 @@
 package com.educationpro.domain;
 
+import com.educationpro.schedule.domain.ScheduleStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Data
@@ -22,9 +23,9 @@ public class ScheduleOccurrence {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "class_schedule_id", nullable = false)
-    private ClassSchedule classSchedule;
+    private ClassSchedule schedule;
 
     @Column(nullable = false)
     private LocalDate occurrenceDate;
@@ -35,15 +36,16 @@ public class ScheduleOccurrence {
     @Column(nullable = false)
     private LocalTime endTime;
 
-    @Column(length = 20)
-    private String status = "SCHEDULED";  // SCHEDULED, CANCELLED, COMPLETED, RESCHEDULED
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20, nullable = false)
+    private ScheduleStatus status = ScheduleStatus.ACTIVE;
 
     @Column(columnDefinition = "TEXT")
     private String cancellationReason;
 
     @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private Instant createdAt = Instant.now();
 
     @Column(nullable = false)
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    private Instant updatedAt = Instant.now();
 }

@@ -1,13 +1,16 @@
 package com.educationpro.domain;
 
+import com.educationpro.schedule.domain.EndCondition;
+import com.educationpro.schedule.domain.RecurrencePattern;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -21,46 +24,31 @@ public class ScheduleRecurrence {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(optional = false)
-    @JoinColumn(name = "class_schedule_id", nullable = false, unique = true)
-    private ClassSchedule classSchedule;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "schedule_id", nullable = false)
+    private ClassSchedule schedule;
 
-    @Column(nullable = false, length = 20)
-    private String frequency;  // DAILY, WEEKLY, MONTHLY, CUSTOM
-
-    // Weekly recurrence
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Boolean monday = false;
+    private RecurrencePattern pattern;
 
     @Column(nullable = false)
-    private Boolean tuesday = false;
+    private int intervalValue = 1;
 
+    @Column(columnDefinition = "integer[]")
+    private List<Integer> daysOfWeek;
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Boolean wednesday = false;
-
-    @Column(nullable = false)
-    private Boolean thursday = false;
-
-    @Column(nullable = false)
-    private Boolean friday = false;
-
-    @Column(nullable = false)
-    private Boolean saturday = false;
-
-    @Column(nullable = false)
-    private Boolean sunday = false;
-
-    // End condition
-    @Column(length = 20)
-    private String endCondition;  // NEVER_ENDS, UNTIL_DATE, NUM_OCCURRENCES
+    private EndCondition endCondition = EndCondition.NEVER;
 
     private LocalDate endDate;
 
-    private Integer numOccurrences;
-
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private Integer occurrenceCount;
 
     @Column(nullable = false)
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    private int occurrencesGenerated = 0;
+
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt = Instant.now();
 }

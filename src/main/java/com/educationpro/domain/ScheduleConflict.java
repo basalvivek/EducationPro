@@ -1,12 +1,13 @@
 package com.educationpro.domain;
 
+import com.educationpro.schedule.domain.ConflictType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Data
 @NoArgsConstructor
@@ -20,22 +21,23 @@ public class ScheduleConflict {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "class_schedule_id", nullable = false)
-    private ClassSchedule classSchedule;
+    private ClassSchedule schedule;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
-    private String conflictType;  // TEACHER_CONFLICT, GROUP_CONFLICT, CLASSROOM_CONFLICT
+    private ConflictType conflictType;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String conflictDescription;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "conflicting_schedule_id")
     private ClassSchedule conflictingSchedule;
 
     @Column(length = 20)
-    private String severity = "WARNING";  // INFO, WARNING, ERROR
+    private String severity = "WARNING";
 
     @Column(nullable = false)
     private Boolean isResolved = false;
@@ -44,7 +46,7 @@ public class ScheduleConflict {
     private String resolutionNote;
 
     @Column(nullable = false, updatable = false)
-    private LocalDateTime detectedAt = LocalDateTime.now();
+    private Instant detectedAt = Instant.now();
 
-    private LocalDateTime resolvedAt;
+    private Instant resolvedAt;
 }

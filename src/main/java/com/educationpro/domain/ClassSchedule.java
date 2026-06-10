@@ -1,16 +1,19 @@
 package com.educationpro.domain;
 
+import com.educationpro.schedule.domain.*;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Type;
+import io.hypersistence.utils.hibernate.type.json.JsonType;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -24,8 +27,24 @@ public class ClassSchedule {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "session_id", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private ScheduleTab scheduleTab = ScheduleTab.CLASSES;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private DateMode dateMode = DateMode.SINGLE;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private ScheduleStatus status = ScheduleStatus.DRAFT;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 50)
+    private ScheduleType scheduleType;
+
+    @ManyToOne
+    @JoinColumn(name = "assignment_session_id")
     private AssignmentSession assignmentSession;
 
     @ManyToOne(optional = false)
@@ -40,16 +59,14 @@ public class ClassSchedule {
     @JoinColumn(name = "subject_id")
     private CourseNode subject;
 
-    @Column(nullable = false, length = 50)
-    private String scheduleType;  // REGULAR_CLASS, REVISION_SESSION, etc.
-
-    @Column(nullable = false, length = 20)
-    private String dateMode;  // SINGLE_DAY, MULTIPLE_DAYS, RECURRING
-
     @Column(nullable = false)
     private LocalDate scheduleDate;
 
     private LocalDate endDate;
+
+    @Type(JsonType.class)
+    @Column(columnDefinition = "jsonb")
+    private List<LocalDate> multipleDates;
 
     @Column(nullable = false)
     private LocalTime startTime;
@@ -59,14 +76,30 @@ public class ClassSchedule {
 
     private Integer durationMinutes;
 
-    @Column(nullable = false, length = 255)
+    @Column(length = 200)
     private String topic;
 
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(columnDefinition = "TEXT")
-    private String learningObjectives;  // JSON array
+    @Column(length = 200)
+    private String eventTitle;
+
+    @Column(length = 200)
+    private String location;
+
+    @Column(length = 20)
+    private String audience;
+
+    @Type(JsonType.class)
+    @Column(columnDefinition = "jsonb", nullable = false)
+    private List<String> learningObjectives = new ArrayList<>();
+
+    @Column(nullable = false)
+    private Boolean attendanceRequired = false;
+
+    @Column
+    private Integer reminderMinutes;
 
     @ManyToOne
     @JoinColumn(name = "classroom_id")
@@ -112,6 +145,12 @@ public class ClassSchedule {
     )
     private Set<Equipment> requiredEquipment = new HashSet<>();
 
-    @OneToOne(mappedBy = "classSchedule", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne(mappedBy = "schedule", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private ScheduleRecurrence recurrence;
+
+    @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<ScheduleOccurrence> occurrences = new ArrayList<>();
+
+    @OneToMany(mappedBy = "schedule", fetch = FetchType.LAZY)
+    private List<ScheduleConflict> conflicts = new ArrayList<>();
 }
