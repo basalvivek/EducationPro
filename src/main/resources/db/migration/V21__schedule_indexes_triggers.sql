@@ -2,7 +2,7 @@
 
 -- Composite index for calendar queries
 CREATE INDEX IF NOT EXISTS idx_so_schedule_date
-  ON schedule_occurrences(schedule_id, occurrence_date);
+  ON schedule_occurrences(class_schedule_id, occurrence_date);
 
 -- Partial index for conflict checks (only active schedules)
 CREATE INDEX IF NOT EXISTS idx_cs_active

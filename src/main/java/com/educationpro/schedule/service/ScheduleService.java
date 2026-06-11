@@ -353,6 +353,10 @@ public class ScheduleService {
         final int MAX_OCCURRENCES = 365;
 
         while (count < MAX_OCCURRENCES && dates.size() < MAX_OCCURRENCES) {
+            if (shouldStopBeforeAdding(current, recurrence)) {
+                break;
+            }
+
             if (shouldIncludeDate(current, recurrence)) {
                 dates.add(current);
                 count++;
@@ -655,6 +659,9 @@ public class ScheduleService {
             LocalDate current = req.startDate();
             int count = 0;
             while (count < 365) {
+                if (shouldStopBeforeAdding(current, tempRecurrence)) {
+                    break;
+                }
                 if (shouldIncludeDate(current, tempRecurrence)) {
                     dates.add(current);
                     count++;
@@ -675,8 +682,9 @@ public class ScheduleService {
 
     private boolean shouldIncludeDate(LocalDate date, ScheduleRecurrence recurrence) {
         if (RecurrencePattern.WEEKLY.equals(recurrence.getPattern())) {
-            int dayOfWeek = date.getDayOfWeek().getValue() % 7;
-            return recurrence.getDaysOfWeek() != null && recurrence.getDaysOfWeek().contains(dayOfWeek);
+            int dayOfWeek = date.getDayOfWeek().getValue();
+            int zeroBasedDay = dayOfWeek == 7 ? 6 : dayOfWeek - 1; // Convert to 0=Mon, 6=Sun
+            return recurrence.getDaysOfWeek() != null && recurrence.getDaysOfWeek().contains(zeroBasedDay);
         }
         return true;
     }
@@ -694,11 +702,31 @@ public class ScheduleService {
         return false;
     }
 
+    private boolean shouldStopBeforeAdding(LocalDate current, ScheduleRecurrence recurrence) {
+        if (EndCondition.UNTIL_DATE.equals(recurrence.getEndCondition()) && recurrence.getEndDate() != null) {
+            return current.isAfter(recurrence.getEndDate());
+        }
+        return false;
+    }
+
     private LocalDate advanceDate(LocalDate current, ScheduleRecurrence recurrence) {
         if (RecurrencePattern.DAILY.equals(recurrence.getPattern())) {
             return current.plusDays(recurrence.getIntervalValue());
         } else if (RecurrencePattern.WEEKLY.equals(recurrence.getPattern())) {
-            return current.plusWeeks(recurrence.getIntervalValue());
+            // For weekly, find next matching day within interval window
+            LocalDate next = current.plusDays(1);
+            int maxDaysInInterval = 7 * recurrence.getIntervalValue();
+
+            for (int i = 0; i < maxDaysInInterval; i++) {
+                int dow = next.getDayOfWeek().getValue();
+                int zeroBasedDay = dow == 7 ? 6 : dow - 1;
+                if (recurrence.getDaysOfWeek() != null && recurrence.getDaysOfWeek().contains(zeroBasedDay)) {
+                    return next;
+                }
+                next = next.plusDays(1);
+            }
+            // If no match in interval, return first date of next interval
+            return next;
         } else if (RecurrencePattern.MONTHLY.equals(recurrence.getPattern())) {
             return current.plusMonths(recurrence.getIntervalValue());
         }
