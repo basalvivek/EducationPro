@@ -9,6 +9,7 @@ const S = {
   stats: {},
   teachers: [],
   groups: [],
+  formGroups: [],
   subjects: [],
   classrooms: [],
   panelOpen: false,
@@ -16,6 +17,17 @@ const S = {
   panelTab: 'CLASSES',
   pendingConflicts: []
 };
+
+function getToken() {
+  return sessionStorage.getItem('edu_token') || localStorage.getItem('ep_token') || '';
+}
+
+function authHeaders(extra) {
+  const h = extra || {};
+  const t = getToken();
+  if (t) h['Authorization'] = 'Bearer ' + t;
+  return h;
+}
 
 document.addEventListener('DOMContentLoaded', init);
 
@@ -76,8 +88,8 @@ function attachEventListeners() {
 
 function loadDropdowns() {
   Promise.all([
-    fetch('/api/admin/schedules/teachers').then(r => r.json()).then(d => S.teachers = d.data || []),
-    fetch('/api/admin/schedules/classrooms').then(r => r.json()).then(d => S.classrooms = d.data || [])
+    fetch('/api/admin/schedules/teachers', { headers: authHeaders() }).then(r => r.json()).then(d => S.teachers = d || []),
+    fetch('/api/admin/schedules/classrooms', { headers: authHeaders() }).then(r => r.json()).then(d => S.classrooms = d || [])
   ]).then(() => {
     populateTeacherDropdown();
   }).catch(err => console.error('Dropdown load error:', err));
@@ -101,10 +113,10 @@ function onTeacherChange() {
     return;
   }
 
-  fetch(`/api/admin/schedules/groups?teacherProfileId=${teacherId}`)
+  fetch(`/api/admin/schedules/groups?teacherProfileId=${teacherId}`, { headers: authHeaders() })
     .then(r => r.json())
     .then(d => {
-      S.groups = d.data || [];
+      S.groups = d || [];
       updateGroupDropdown();
     })
     .catch(err => console.error('Groups load error:', err));
@@ -122,10 +134,10 @@ function updateGroupDropdown() {
 }
 
 function loadStats() {
-  fetch('/api/admin/schedules/stats')
+  fetch('/api/admin/schedules/stats', { headers: authHeaders() })
     .then(r => r.json())
     .then(d => {
-      S.stats = d.data || {};
+      S.stats = d || {};
       renderStats(S.stats);
     })
     .catch(err => console.error('Stats load error:', err));
@@ -148,10 +160,10 @@ function loadCalendar() {
     ...Object.fromEntries(Object.entries(S.filters).filter(([,v]) => v !== null && v !== ''))
   });
 
-  fetch(`/api/admin/schedules/calendar?${params}`)
+  fetch(`/api/admin/schedules/calendar?${params}`, { headers: authHeaders() })
     .then(r => r.json())
     .then(d => {
-      S.calendarData = d.data || [];
+      S.calendarData = d || [];
       renderCalendar();
     })
     .catch(err => console.error('Calendar load error:', err));
@@ -369,169 +381,324 @@ function renderPanelForm() {
   body.innerHTML = '';
 
   if (S.panelTab === 'CLASSES') {
+    const teacherOptions = S.teachers
+      .map(t => `<option value="${t.id}">${escHtml(t.fullName)}</option>`)
+      .join('');
+
     body.innerHTML = `
-      <div class="form-group-schedule">
-        <label>Teacher *</label>
+      <div class="form-group-schedule mb-2">
+        <label class="form-label fw-600">Teacher *</label>
         <select class="form-select form-select-sm" id="formTeacher">
+          <option value="">Select teacher</option>${teacherOptions}
+        </select>
+      </div>
+      <div class="form-group-schedule mb-2">
+        <label class="form-label fw-600">Group *</label>
+        <select class="form-select form-select-sm" id="formGroup">
+          <option value="">Select teacher first</option>
+        </select>
+      </div>
+      <div class="form-group-schedule mb-2">
+        <label class="form-label fw-600">Subject</label>
+        <select class="form-select form-select-sm" id="formSubject">
+          <option value="">Select group first</option>
+        </select>
+      </div>
+      <div class="form-group-schedule mb-2">
+        <label class="form-label fw-600">Schedule Type</label>
+        <select class="form-select form-select-sm" id="formScheduleType">
+          <option value="">None</option>
+          <option value="REGULAR">Regular Class</option>
+          <option value="REVISION">Revision Session</option>
+          <option value="EXTRA">Extra Class</option>
+          <option value="PRACTICAL">Practical Session</option>
+          <option value="EXAM_PREP">Exam Preparation</option>
+          <option value="PARENT">Parent Session</option>
+          <option value="WORKSHOP">Workshop</option>
+        </select>
+      </div>
+      <div class="form-group-schedule mb-2">
         <label class="form-label fw-600">Date Mode *</label>
         <div class="btn-group w-100" role="group">
-          <input type="radio" class="btn-check" name="dateMode" id="singleDay" value="SINGLE_DAY" checked>
+          <input type="radio" class="btn-check" name="dateMode" id="singleDay" value="SINGLE" checked>
           <label class="btn btn-outline-primary" for="singleDay">Single Day</label>
-          <input type="radio" class="btn-check" name="dateMode" id="multiDay" value="MULTIPLE_DAYS">
+          <input type="radio" class="btn-check" name="dateMode" id="multiDay" value="MULTIPLE">
           <label class="btn btn-outline-primary" for="multiDay">Multiple Days</label>
           <input type="radio" class="btn-check" name="dateMode" id="recurring" value="RECURRING">
           <label class="btn btn-outline-primary" for="recurring">Recurring</label>
         </div>
       </div>
-      <div class="col-md-6">
+      <div class="mb-2">
         <label class="form-label fw-600">Schedule Date *</label>
         <input type="date" class="form-control" id="scheduleDate" required>
       </div>
-      <div class="col-md-6">
-        <label class="form-label fw-600">Start Time *</label>
-        <input type="time" class="form-control" id="startTime" required>
+      <div class="row g-2 mb-2">
+        <div class="col-6">
+          <label class="form-label fw-600">Start Time *</label>
+          <input type="time" class="form-control" id="startTime" required>
+        </div>
+        <div class="col-6">
+          <label class="form-label fw-600">End Time *</label>
+          <input type="time" class="form-control" id="endTime" required>
+        </div>
       </div>
-      <div class="col-md-6">
-        <label class="form-label fw-600">End Time *</label>
-        <input type="time" class="form-control" id="endTime" required>
-      </div>
-      <div class="col-12">
+      <div class="mb-2">
         <label class="form-label fw-600">Topic *</label>
-        <input type="text" class="form-control" id="topic" maxlength="255" required placeholder="e.g. Algebra Basics">
+        <input type="text" class="form-control" id="topic" maxlength="200" required placeholder="e.g. Algebra Basics">
       </div>
-      <div class="col-12">
+      <div class="mb-2">
         <label class="form-label fw-600">Description</label>
         <textarea class="form-control" id="description" rows="4" placeholder="Lesson details..."></textarea>
       </div>
-      <div class="col-12">
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="enableAttendance">
-          <label class="form-check-label" for="enableAttendance">Enable Attendance</label>
+      <div class="form-check mb-2">
+        <input class="form-check-input" type="checkbox" id="enableAttendance">
+        <label class="form-check-label" for="enableAttendance">Enable Attendance</label>
+      </div>
+    `;
+
+    document.getElementById('formTeacher').addEventListener('change', onFormTeacherChange);
+    document.getElementById('formGroup').addEventListener('change', onFormGroupChange);
+  } else {
+    const isEvent = S.panelTab === 'EVENTS';
+    const isHoliday = S.panelTab === 'HOLIDAYS';
+    const titleLabel = isHoliday ? 'Holiday Name' : 'Event Title';
+    const defaultStart = isHoliday ? '00:00' : '09:00';
+    const defaultEnd = isHoliday ? '23:59' : '17:00';
+
+    body.innerHTML = `
+      <div class="mb-2">
+        <label class="form-label fw-600">${titleLabel} *</label>
+        <input type="text" class="form-control" id="eventTitle" maxlength="200" required>
+      </div>
+      ${isEvent ? `
+      <div class="mb-2">
+        <label class="form-label fw-600">Location</label>
+        <input type="text" class="form-control" id="eventLocation" maxlength="200">
+      </div>
+      <div class="mb-2">
+        <label class="form-label fw-600">Audience</label>
+        <select class="form-select form-select-sm" id="eventAudience">
+          <option value="">Not specified</option>
+          <option value="ALL">Everyone</option>
+          <option value="TEACHERS">Teachers</option>
+          <option value="STUDENTS">Students</option>
+          <option value="PARENTS">Parents</option>
+        </select>
+      </div>` : ''}
+      <div class="mb-2">
+        <label class="form-label fw-600">Date *</label>
+        <input type="date" class="form-control" id="scheduleDate" required>
+      </div>
+      <div class="row g-2 mb-2">
+        <div class="col-6">
+          <label class="form-label fw-600">Start Time *</label>
+          <input type="time" class="form-control" id="startTime" value="${defaultStart}" required>
         </div>
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="notifyStudents">
-          <label class="form-check-label" for="notifyStudents">Notify Students</label>
-        </div>
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="notifyParents">
-          <label class="form-check-label" for="notifyParents">Notify Parents</label>
+        <div class="col-6">
+          <label class="form-label fw-600">End Time *</label>
+          <input type="time" class="form-control" id="endTime" value="${defaultEnd}" required>
         </div>
       </div>
-    </div>
-  `;
+      <div class="mb-2">
+        <label class="form-label fw-600">Description</label>
+        <textarea class="form-control" id="description" rows="4"></textarea>
+      </div>
+    `;
+  }
+}
+
+function onFormTeacherChange() {
+  const teacherId = document.getElementById('formTeacher').value;
+  const select = document.getElementById('formGroup');
+  select.innerHTML = '<option value="">Select group</option>';
+  document.getElementById('formSubject').innerHTML = '<option value="">Select group first</option>';
+  S.formGroups = [];
+  if (!teacherId) return;
+
+  fetch(`/api/admin/schedules/groups?teacherProfileId=${teacherId}`, { headers: authHeaders() })
+    .then(r => r.json())
+    .then(groups => {
+      S.formGroups = groups || [];
+      S.formGroups.forEach(g => {
+        const opt = document.createElement('option');
+        opt.value = g.id;
+        opt.textContent = `${g.groupName} (${g.studentCount} students)`;
+        select.appendChild(opt);
+      });
+    })
+    .catch(err => console.error('Groups load error:', err));
+}
+
+function onFormGroupChange() {
+  const groupId = document.getElementById('formGroup').value;
+  const select = document.getElementById('formSubject');
+  select.innerHTML = '<option value="">None</option>';
+
+  const group = (S.formGroups || []).find(g => String(g.id) === groupId);
+  if (!group || !group.sessionId) return;
+
+  fetch(`/api/admin/schedules/subjects?sessionId=${group.sessionId}`, { headers: authHeaders() })
+    .then(r => r.json())
+    .then(subjects => {
+      (subjects || []).forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.nodeId;
+        opt.textContent = s.subjectName;
+        select.appendChild(opt);
+      });
+    })
+    .catch(err => console.error('Subjects load error:', err));
 }
 
 function saveSchedule() {
-  var teacherId = document.getElementById('teacherSelect').value;
-  var groupId = document.getElementById('groupSelect').value;
-  var scheduleDate = document.getElementById('scheduleDate').value;
-  var startTime = document.getElementById('startTime').value;
-  var endTime = document.getElementById('endTime').value;
-  var topic = document.getElementById('topic').value;
+  const scheduleDate = document.getElementById('scheduleDate').value;
+  const startTime = document.getElementById('startTime').value;
+  const endTime = document.getElementById('endTime').value;
+  const description = document.getElementById('description').value || null;
 
-  if (!teacherId || !groupId || !scheduleDate || !startTime || !endTime || !topic) {
-    showToast('Please fill all required fields', 'warning');
-    return;
+  let payload;
+
+  if (S.panelTab === 'CLASSES') {
+    const teacherId = document.getElementById('formTeacher').value;
+    const groupId = document.getElementById('formGroup').value;
+    const topic = document.getElementById('topic').value;
+
+    if (!teacherId || !groupId || !scheduleDate || !startTime || !endTime || !topic) {
+      showToast('Please fill all required fields', 'warning');
+      return;
+    }
+
+    const group = (S.formGroups || []).find(g => String(g.id) === groupId);
+    const subjectNodeId = document.getElementById('formSubject').value;
+
+    payload = {
+      scheduleTab: 'CLASSES',
+      teacherProfileId: parseInt(teacherId),
+      groupId: parseInt(groupId),
+      subjectNodeId: subjectNodeId ? parseInt(subjectNodeId) : null,
+      assignmentSessionId: group ? group.sessionId : null,
+      scheduleType: document.getElementById('formScheduleType').value || null,
+      dateMode: document.querySelector('input[name="dateMode"]:checked').value,
+      startDate: scheduleDate,
+      startTime: startTime,
+      endTime: endTime,
+      topic: topic,
+      description: description,
+      attendanceRequired: document.getElementById('enableAttendance').checked
+    };
+  } else {
+    const eventTitle = document.getElementById('eventTitle').value;
+
+    if (!eventTitle || !scheduleDate || !startTime || !endTime) {
+      showToast('Please fill all required fields', 'warning');
+      return;
+    }
+
+    const locationEl = document.getElementById('eventLocation');
+    const audienceEl = document.getElementById('eventAudience');
+
+    payload = {
+      scheduleTab: S.panelTab,
+      dateMode: 'SINGLE',
+      startDate: scheduleDate,
+      startTime: startTime,
+      endTime: endTime,
+      eventTitle: eventTitle,
+      location: locationEl ? (locationEl.value || null) : null,
+      audience: audienceEl ? (audienceEl.value || null) : null,
+      description: description
+    };
   }
-
-  var payload = {
-    sessionId: scheduleState.currentSession,
-    teacherId: parseInt(teacherId),
-    groupId: parseInt(groupId),
-    scheduleType: document.getElementById('scheduleTypeSelect').value,
-    dateMode: document.querySelector('input[name="dateMode"]:checked').value,
-    scheduleDate: scheduleDate,
-    startTime: startTime,
-    endTime: endTime,
-    topic: topic,
-    description: document.getElementById('description').value,
-    enableAttendance: document.getElementById('enableAttendance').checked,
-    notifyStudents: document.getElementById('notifyStudents').checked,
-    notifyParents: document.getElementById('notifyParents').checked
-  };
 
   fetch('/api/admin/schedules', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + localStorage.getItem('ep_token')
-    },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(payload)
   })
-  .then(function (r) {
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r.json();
-  })
-  .then(function (data) {
-    showToast('Schedule created successfully', 'success');
-    bootstrap.Modal.getInstance(document.getElementById('scheduleModal')).hide();
-    loadSchedules();
-  })
-  .catch(function (e) {
-    console.error('Error:', e);
-    showToast('Failed to create schedule', 'danger');
-  });
+    .then(async r => {
+      if (!r.ok) {
+        const err = await r.json().catch(() => null);
+        throw new Error(err && err.message ? err.message : 'HTTP ' + r.status);
+      }
+      return r.json();
+    })
+    .then(() => {
+      showToast('Schedule created successfully', 'success');
+      closePanel();
+      loadCalendar();
+      loadStats();
+    })
+    .catch(err => {
+      console.error('Save error:', err);
+      showToast(err.message || 'Failed to create schedule', 'danger');
+    });
 }
 
-function loadSchedules() {
-  if (!scheduleState.currentSession) {
-    document.getElementById('scheduleCalendar').innerHTML = '<div class="text-muted">Select a session first</div>';
-    return;
+function formatDate(d) {
+  if (typeof d === 'string') return d.substring(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function getDateFrom() {
+  const d = new Date(S.currentDate);
+  d.setHours(0, 0, 0, 0);
+  if (S.view === 'week') {
+    d.setDate(d.getDate() - d.getDay());
+  } else if (S.view === 'month') {
+    d.setDate(1);
   }
-
-  fetch('/api/admin/schedules/session/' + scheduleState.currentSession, {
-    headers: {
-      'Authorization': 'Bearer ' + localStorage.getItem('ep_token')
-    }
-  })
-  .then(function (r) { return r.json(); })
-  .then(function (schedules) {
-    scheduleState.schedules = schedules;
-    renderCalendar();
-  })
-  .catch(function (e) {
-    console.error('Error loading schedules:', e);
-    showToast('Failed to load schedules', 'danger');
-  });
+  return d;
 }
 
-function renderCalendar() {
-  var calendar = document.getElementById('scheduleCalendar');
-  if (!scheduleState.schedules.length) {
-    calendar.innerHTML = '<div class="text-muted">No schedules created yet</div>';
-    return;
+function getDateTo() {
+  const d = new Date(getDateFrom());
+  if (S.view === 'week') {
+    d.setDate(d.getDate() + 6);
+  } else if (S.view === 'month') {
+    d.setMonth(d.getMonth() + 1);
+    d.setDate(0);
+  } else if (S.view === 'agenda') {
+    d.setDate(d.getDate() + 30);
   }
-
-  var html = '<div class="row g-3">';
-  scheduleState.schedules.forEach(function (schedule) {
-    html += `
-      <div class="col-md-6">
-        <div class="card" style="border-left:4px solid ${getColorForType(schedule.scheduleType)}">
-          <div class="card-body">
-            <h6 class="card-title">${escHtml(schedule.topic)}</h6>
-            <p class="card-text small mb-2">
-              <strong>${escHtml(schedule.teacherName)}</strong><br>
-              ${escHtml(schedule.groupName)}<br>
-              ${schedule.scheduleDate} ${schedule.startTime} - ${schedule.endTime}
-            </p>
-          </div>
-        </div>
-      </div>
-    `;
-  });
-  html += '</div>';
-  calendar.innerHTML = html;
+  return d;
 }
 
-function getColorForType(type) {
-  var colors = {
-    'REGULAR_CLASS': '#0d6efd',
-    'REVISION_SESSION': '#198754',
-    'EXTRA_CLASS': '#6f42c1',
-    'PRACTICAL_SESSION': '#fd7e14',
-    'EXAM_PREPARATION': '#dc3545'
-  };
-  return colors[type] || '#6c757d';
+function updateDateRangeLabel() {
+  const label = document.getElementById('dateRangeLabel');
+  if (!label) return;
+  const from = getDateFrom();
+  const to = getDateTo();
+  const full = { month: 'short', day: 'numeric', year: 'numeric' };
+  if (S.view === 'day') {
+    label.textContent = from.toLocaleDateString('en-US', { weekday: 'long', ...full });
+  } else {
+    label.textContent = `${from.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${to.toLocaleDateString('en-US', full)}`;
+  }
+}
+
+function applyFilters() {
+  S.filters.teacherId = document.getElementById('filterTeacher').value || null;
+  S.filters.groupId = document.getElementById('filterGroup').value || null;
+  S.filters.type = document.getElementById('filterType').value || null;
+  S.filters.status = document.getElementById('filterStatus').value || null;
+  loadCalendar();
+}
+
+function clearFilters() {
+  S.filters = { teacherId: null, groupId: null, type: null, dateFrom: null, dateTo: null, status: null };
+  document.getElementById('filterTeacher').value = '';
+  document.getElementById('filterType').value = '';
+  document.getElementById('filterStatus').value = '';
+  S.groups = [];
+  updateGroupDropdown();
+  loadCalendar();
+}
+
+function editSchedule(scheduleId) {
+  openPanel(scheduleId);
 }
 
 function showToast(message, type) {
@@ -548,8 +715,3 @@ function escHtml(text) {
   div.textContent = text;
   return div.innerHTML;
 }
-
-// Initialize
-document.addEventListener('DOMContentLoaded', function () {
-  console.log('Schedule module loaded');
-});

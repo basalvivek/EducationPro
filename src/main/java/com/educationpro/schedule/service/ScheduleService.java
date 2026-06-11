@@ -30,6 +30,7 @@ public class ScheduleService {
     private final CourseNodeRepository courseNodeRepository;
     private final TeacherProfileRepository teacherRepository;
     private final ClassroomRepository classroomRepository;
+    private final UserRepository userRepository;
 
     public ScheduleResponseDto createSchedule(CreateScheduleRequest req, Long adminId) {
         validateScheduleRequest(req);
@@ -39,6 +40,7 @@ public class ScheduleService {
         }
 
         ClassSchedule schedule = buildScheduleEntity(req);
+        schedule.setCreatedBy(userRepository.getReferenceById(adminId));
         final ClassSchedule savedSchedule = scheduleRepository.save(schedule);
 
         if (DateMode.RECURRING.equals(req.dateMode()) && req.recurrence() != null) {
@@ -164,7 +166,15 @@ public class ScheduleService {
     }
 
     public List<ScheduleCalendarDto> getCalendarData(LocalDate from, LocalDate to, Long teacherId, Long groupId, String type, String status) {
-        List<ClassSchedule> schedules = scheduleRepository.findByDateRangeAndFilters(from, to, teacherId, groupId, type, status);
+        ScheduleType typeFilter;
+        ScheduleStatus statusFilter;
+        try {
+            typeFilter = (type == null || type.isBlank()) ? null : ScheduleType.valueOf(type.toUpperCase());
+            statusFilter = (status == null || status.isBlank()) ? null : ScheduleStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException("Invalid schedule type or status filter");
+        }
+        List<ClassSchedule> schedules = scheduleRepository.findByDateRangeAndFilters(from, to, teacherId, groupId, typeFilter, statusFilter);
 
         List<ScheduleCalendarDto> result = new ArrayList<>();
         for (ClassSchedule schedule : schedules) {
@@ -405,16 +415,24 @@ public class ScheduleService {
     }
 
     private void validateAssignmentPairing(Long teacherProfileId, Long groupId, Long subjectNodeId) {
+        if (teacherProfileId == null || groupId == null) {
+            throw new BusinessException("Teacher and group are required for class schedules");
+        }
+
         AssignmentTeacherMapping mapping = teacherMappingRepository.findByTeacherAndGroup(teacherProfileId, groupId);
         if (mapping == null) {
             throw new BusinessException("Teacher is not assigned to this group in any active session");
+        }
+
+        if (subjectNodeId == null) {
+            return;
         }
 
         AssignmentSession session = mapping.getSession();
         CourseNode scopeNode = session.getScopeNode();
         CourseNode subjectNode = courseNodeRepository.findById(subjectNodeId).orElse(null);
 
-        if (subjectNode == null || !isAncestorOrEqual(scopeNode, subjectNode)) {
+        if (subjectNode == null || scopeNode == null || !isAncestorOrEqual(scopeNode, subjectNode)) {
             throw new BusinessException("Subject node is not in the scope of the assignment session");
         }
     }
@@ -588,7 +606,8 @@ public class ScheduleService {
 
     private ScheduleCalendarDto mapToCalendarDto(ClassSchedule schedule, LocalDate date) {
         String title = ScheduleTab.CLASSES.equals(schedule.getScheduleTab()) ?
-                (schedule.getSubject() != null ? schedule.getSubject().getTitle() : "") :
+                (schedule.getSubject() != null ? schedule.getSubject().getTitle()
+                        : (schedule.getTopic() != null ? schedule.getTopic() : "Class")) :
                 schedule.getEventTitle();
 
         String teacherName = schedule.getTeacher() != null && schedule.getTeacher().getUser() != null ?

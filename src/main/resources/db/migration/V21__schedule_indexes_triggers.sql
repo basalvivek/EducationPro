@@ -11,4 +11,4 @@ CREATE INDEX IF NOT EXISTS idx_cs_active
 
 -- Dedup index for conflicts
 CREATE INDEX IF NOT EXISTS idx_sc_pair
-  ON schedule_conflicts(schedule_id_1, schedule_id_2);
+  ON schedule_conflicts(class_schedule_id, conflicting_schedule_id);

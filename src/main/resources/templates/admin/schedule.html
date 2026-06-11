@@ -135,6 +135,13 @@
               <label class="form-label small fw-600">Type</label>
               <select class="form-select form-select-sm" id="filterType">
                 <option value="">All Types</option>
+                <option value="REGULAR">Regular Class</option>
+                <option value="REVISION">Revision Session</option>
+                <option value="EXTRA">Extra Class</option>
+                <option value="PRACTICAL">Practical Session</option>
+                <option value="EXAM_PREP">Exam Preparation</option>
+                <option value="PARENT">Parent Session</option>
+                <option value="WORKSHOP">Workshop</option>
               </select>
             </div>
 
@@ -142,6 +149,9 @@
               <label class="form-label small fw-600">Status</label>
               <select class="form-select form-select-sm" id="filterStatus">
                 <option value="">All Status</option>
+                <option value="DRAFT">Draft</option>
+                <option value="ACTIVE">Active</option>
+                <option value="COMPLETED">Completed</option>
               </select>
             </div>
 
@@ -272,7 +282,7 @@
 <div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999;"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script th:src="@{/js/schedule.js(v=1)}"></script>
+<script th:src="@{/js/schedule.js(v=4)}"></script>
 <script>
   (function() {
     var name = sessionStorage.getItem('edu_name') || '';

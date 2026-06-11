@@ -11,7 +11,7 @@ public interface AssignmentGroupRepository extends JpaRepository<AssignmentGroup
     List<AssignmentGroup> findBySession_Id(Long sessionId);
 
     @Query("SELECT DISTINCT ag FROM AssignmentGroup ag " +
-           "JOIN AssignmentTeacherMapping atm ON atm.groupId = ag.id " +
-           "WHERE atm.teacherProfile.id = :teacherId AND ag.session.status = 'SAVED'")
+           "JOIN AssignmentTeacherMapping atm ON atm.group.id = ag.id " +
+           "WHERE atm.teacherProfileId = :teacherId AND ag.session.status = 'SAVED'")
     List<AssignmentGroup> findGroupsForTeacher(@Param("teacherId") Long teacherId);
 }

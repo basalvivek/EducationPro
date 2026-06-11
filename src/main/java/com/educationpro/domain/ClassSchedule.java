@@ -47,12 +47,12 @@ public class ClassSchedule {
     @JoinColumn(name = "assignment_session_id")
     private AssignmentSession assignmentSession;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "teacher_profile_id", nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "teacher_profile_id")
     private TeacherProfile teacher;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "assignment_group_id", nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "assignment_group_id")
     private AssignmentGroup assignmentGroup;
 
     @ManyToOne

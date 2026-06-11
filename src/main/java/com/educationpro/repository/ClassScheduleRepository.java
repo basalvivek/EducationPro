@@ -2,6 +2,7 @@ package com.educationpro.repository;
 
 import com.educationpro.domain.ClassSchedule;
 import com.educationpro.schedule.domain.ScheduleStatus;
+import com.educationpro.schedule.domain.ScheduleType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -29,16 +30,16 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
     @Query("SELECT cs FROM ClassSchedule cs WHERE cs.scheduleDate >= :from AND cs.scheduleDate <= :to " +
            "AND (:teacherId IS NULL OR cs.teacher.id = :teacherId) " +
            "AND (:groupId IS NULL OR cs.assignmentGroup.id = :groupId) " +
-           "AND (:type IS NULL OR cs.scheduleType = com.educationpro.schedule.domain.ScheduleType.valueOf(:type)) " +
-           "AND (:status IS NULL OR cs.status = com.educationpro.schedule.domain.ScheduleStatus.valueOf(:status)) " +
+           "AND (:type IS NULL OR cs.scheduleType = :type) " +
+           "AND (:status IS NULL OR cs.status = :status) " +
            "AND cs.status != com.educationpro.schedule.domain.ScheduleStatus.CANCELLED")
     List<ClassSchedule> findByDateRangeAndFilters(
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
             @Param("teacherId") Long teacherId,
             @Param("groupId") Long groupId,
-            @Param("type") String type,
-            @Param("status") String status);
+            @Param("type") ScheduleType type,
+            @Param("status") ScheduleStatus status);
 
     @Query("SELECT cs FROM ClassSchedule cs WHERE cs.teacher.id = :teacherId " +
            "AND cs.scheduleDate = :date " +

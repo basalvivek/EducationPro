@@ -42,6 +42,8 @@ class ScheduleServiceTest {
     private TeacherProfileRepository teacherRepository;
     @Mock
     private ClassroomRepository classroomRepository;
+    @Mock
+    private UserRepository userRepository;
 
     private ScheduleService scheduleService;
 
@@ -51,7 +53,7 @@ class ScheduleServiceTest {
         scheduleService = new ScheduleService(
             scheduleRepository, recurrenceRepository, occurrenceRepository, conflictRepository,
             sessionRepository, groupRepository, teacherMappingRepository, courseNodeRepository,
-            teacherRepository, classroomRepository
+            teacherRepository, classroomRepository, userRepository
         );
     }
 

@@ -12,11 +12,12 @@ public interface AssignmentTeacherMappingRepository extends JpaRepository<Assign
     List<AssignmentTeacherMapping> findBySession_Id(Long sessionId);
 
     @Query("SELECT atm FROM AssignmentTeacherMapping atm " +
-           "WHERE atm.teacherProfile.id = :teacherId AND atm.groupId = :groupId " +
+           "WHERE atm.teacherProfileId = :teacherId AND atm.group.id = :groupId " +
            "AND atm.session.status = 'SAVED'")
     AssignmentTeacherMapping findByTeacherAndGroup(@Param("teacherId") Long teacherId, @Param("groupId") Long groupId);
 
-    @Query("SELECT DISTINCT atm.teacherProfile FROM AssignmentTeacherMapping atm " +
-           "WHERE atm.session.status = 'SAVED'")
+    @Query("SELECT DISTINCT tp FROM TeacherProfile tp WHERE tp.id IN " +
+           "(SELECT atm.teacherProfileId FROM AssignmentTeacherMapping atm " +
+           "WHERE atm.session.status = 'SAVED')")
     List<TeacherProfile> findDistinctTeachersByActiveSessions();
 }
